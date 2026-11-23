@@ -27,24 +27,25 @@ window.LOVE_CONFIG = {
   gifs: {
     welcome: "",                          // empty = our own cartoon couple waves hello
     cheer: [                              // big GIF after each stop (repeats if fewer)
-      "https://media.giphy.com/media/ghj8H8y7AgqEia4yLH/giphy.gif",          // otters kissing
-      "https://media.giphy.com/media/3Dmph5YAQgSJtSdU6h/giphy.gif",          // bunny & bear hug
-      "https://media.giphy.com/media/HKSCIemjPlb6T8QY76/giphy.gif",          // big cuddle
-      "https://media.giphy.com/media/Mk8mJM6SQzOin6Gnhb/giphy.gif"           // couple hug
+      "https://media.giphy.com/media/Mk8mJM6SQzOin6Gnhb/giphy.gif",          // couple squeeze-hug
+      "https://media.giphy.com/media/7KmCCmbmv850stIY8Q/giphy.gif",          // hug in a big heart
+      "https://media.giphy.com/media/byTkG3fBegmk2nEVbX/giphy.gif",          // cheek kiss on a bench
+      "https://media.giphy.com/media/TLpVt0wAA8O4lJbIru/giphy.gif"           // cuddly kiss
     ],
     reactions: [                          // little sticker that pops up when she adds something
-      "https://media.giphy.com/media/hJioaFkX7sjSe7Tkd1/giphy.gif", "https://media.giphy.com/media/xR5cPyPoL5HVXSphqA/giphy.gif", "https://media.giphy.com/media/kCqhMzivjgI4kFMuhF/giphy.gif",
-      "https://media.giphy.com/media/QO6gybBh0d4LLTNn1d/giphy.gif", "https://media.giphy.com/media/AjhzHRiiTdb20awZoo/giphy.gif", "https://media.giphy.com/media/LCPkk5ouEjrEL0cs8j/giphy.gif",
-      "https://media.giphy.com/media/TqZfKTQnCrNCzhUobt/giphy.gif", "https://media.giphy.com/media/IzXiddo2twMmdmU8Lv/giphy.gif", "https://media.giphy.com/media/vX1C2TejT6OCOz2kLd/giphy.gif"
+      "https://media.giphy.com/media/hJioaFkX7sjSe7Tkd1/giphy.gif", "https://media.giphy.com/media/gRSqTmhQ3ayroAQ04S/giphy.gif", "https://media.giphy.com/media/iN4THuyyGQboRXYEkc/giphy.gif",
+      "https://media.giphy.com/media/8xiaKdWCoi4Iiuxzc2/giphy.gif", "https://media.giphy.com/media/97Dk9XfZlth5xY77y1/giphy.gif", "https://media.giphy.com/media/vX1C2TejT6OCOz2kLd/giphy.gif",
+      "https://media.giphy.com/media/xR5cPyPoL5HVXSphqA/giphy.gif", "https://media.giphy.com/media/AjhzHRiiTdb20awZoo/giphy.gif"
     ],
     kiss: [                               // when she taps "Catch a kiss"
-      "https://media.giphy.com/media/VZJn6HJfcWaxuX5nLg/giphy.gif", "https://media.giphy.com/media/NmtzPY31iMjbOMt84s/giphy.gif", "https://media.giphy.com/media/y52k9qaauF4lgk9wjh/giphy.gif"
+      "https://media.giphy.com/media/gRSqTmhQ3ayroAQ04S/giphy.gif", "https://media.giphy.com/media/97Dk9XfZlth5xY77y1/giphy.gif", "https://media.giphy.com/media/VZJn6HJfcWaxuX5nLg/giphy.gif"
     ],
-    wish: "https://media.giphy.com/media/uv0VSp6Eqlu1nGvkZ0/giphy.gif",       // Wish Well stop
-    home: "https://media.giphy.com/media/m48XvrJkezllfy9ahI/giphy.gif",       // address stop
-    final: "https://media.giphy.com/media/oalrDwsiuYFdKq4t21/giphy.gif",
-    sent: "https://media.giphy.com/media/jTlX4B5eoVPmLdu5nR/giphy.gif"        // "hug incoming!"
+    wish: "https://media.giphy.com/media/MESDm2ngLusbCIeGiy/giphy.gif",       // Wish Well stop ("I love you so much")
+    home: "https://media.giphy.com/media/dx8oKjpQlfBzIXPKd2/giphy.gif",       // address stop (walking home hand in hand)
+    final: "https://media.giphy.com/media/MfhUoRSp05AxeSIoSW/giphy.gif",      // big cosy hug
+    sent: "https://media.giphy.com/media/s6fnVyWTfM2nUKuMVY/giphy.gif"        // happy squeeze after she sends
   },
+
 
 
   // Shown after each stop. Repeats if you have more stops than lines.
