@@ -52,67 +52,74 @@
   const stage = $('#stage'), modal = $('#modal'), drawer = $('#drawer'), toastEl = $('#toast');
 
   /* ---------------------------------------------------------------- sound */
-  // soft, bubbly, music-box-ish sounds made live with Web Audio (no files)
+  // soft harp plucks in a warm little room: gentle, loving, never beepy
   let ac, master, echoIn;
+  const plucks = new Map();
   function audio() {
     if (!ac) {
       ac = new (window.AudioContext || window.webkitAudioContext)();
-      master = ac.createGain(); master.gain.value = 0.9;
+      master = ac.createGain(); master.gain.value = 0.8;
+      const warm = ac.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 3200; warm.Q.value = 0.3;
       const comp = ac.createDynamicsCompressor();
-      master.connect(comp).connect(ac.destination);
-      // a dreamy little echo, like sounds in a fairy-tale room
-      echoIn = ac.createGain(); echoIn.gain.value = 0.22;
-      const d = ac.createDelay(1); d.delayTime.value = 0.19;
-      const fb = ac.createGain(); fb.gain.value = 0.3;
-      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
-      echoIn.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(master);
+      master.connect(warm).connect(comp).connect(ac.destination);
+      // soft room reverb
+      const len = Math.floor(ac.sampleRate * 2.4), ir = ac.createBuffer(2, len, ac.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      }
+      const verb = ac.createConvolver(); verb.buffer = ir;
+      echoIn = ac.createGain(); echoIn.gain.value = 0.35;
+      echoIn.connect(verb).connect(master);
     }
     if (ac.state === 'suspended') ac.resume();
     return ac;
   }
-  function note({ f, to, at = 0, dur = 0.2, vol = 0.1, type = 'sine', bell = 0, echo = true, attack = 0.008 }) {
-    const t = ac.currentTime + at;
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + attack);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    g.connect(master); if (echo) g.connect(echoIn);
-    const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
-    if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur * 0.6);
-    o.connect(g); o.start(t); o.stop(t + dur + 0.05);
-    if (bell) {
-      const o2 = ac.createOscillator(), g2 = ac.createGain();
-      o2.type = 'sine'; o2.frequency.setValueAtTime(f * 2.76, t); g2.gain.value = bell;
-      o2.connect(g2).connect(g); o2.start(t); o2.stop(t + dur * 0.5);
+  // a plucked string (Karplus-Strong), rounded so it sounds like a soft harp
+  function pluckBuffer(f) {
+    const key = Math.round(f);
+    if (plucks.has(key)) return plucks.get(key);
+    const sr = ac.sampleRate, len = Math.floor(sr * 2.2), N = Math.max(2, Math.round(sr / f));
+    const buf = ac.createBuffer(1, len, sr), out = buf.getChannelData(0), ring = new Float32Array(N);
+    let prev = 0;
+    for (let i = 0; i < N; i++) { prev = prev * 0.6 + (Math.random() * 2 - 1) * 0.4; ring[i] = prev; }
+    for (let i = 0; i < len; i++) {
+      const j = i % N;
+      out[i] = ring[j];
+      ring[j] = (ring[j] + ring[(j + 1) % N]) * 0.5 * 0.998;
     }
+    plucks.set(key, buf);
+    return buf;
+  }
+  function pluck(f, { at = 0, vol = 0.15 } = {}) {
+    const src = ac.createBufferSource(), g = ac.createGain();
+    src.buffer = pluckBuffer(f); g.gain.value = vol;
+    src.connect(g); g.connect(master); g.connect(echoIn);
+    src.start(ac.currentTime + at);
+  }
+  // a soft warm hum under happy moments
+  function glow(f, { at = 0, dur = 1.2, vol = 0.03 } = {}) {
+    const t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master); g.connect(echoIn); o.start(t); o.stop(t + dur + 0.05);
   }
   const play = fn => { if (!S.soundOn) return; try { audio(); fn(); } catch (e) { /* no audio, no problem */ } };
-  const PENTA = [1047, 1175, 1319, 1568, 1760, 2093, 2349, 2637];
-  function tone(freqs, dur = 0.12, type = 'sine', gap = 0.07, vol = 0.12) {
-    play(() => freqs.forEach((f, i) => note({ f, at: i * gap, dur, vol: vol * 0.8, type, bell: 0.15 })));
-  }
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function tone(freqs, dur, type, gap = 0.07) { play(() => freqs.forEach((f, i) => pluck(f, { at: i * gap, vol: 0.13 }))); }
   const sfx = {
-    // bubbly "bloop" going up
-    pop: () => play(() => { note({ f: 420, to: 980, dur: 0.12, vol: 0.13, echo: false }); note({ f: 1568, at: 0.05, dur: 0.22, vol: 0.035, bell: 0.2 }); }),
-    // soft little boing going down
-    boop: () => play(() => note({ f: 620, to: 260, dur: 0.22, vol: 0.1, echo: false })),
-    // sparkly glockenspiel twinkle
-    chime: () => play(() => [0, 2, 4, 5].forEach((k, i) => note({ f: PENTA[k], at: i * 0.07, dur: 0.65, vol: 0.055, bell: 0.25 }))),
-    // happy little fanfare + glitter
-    tada: () => play(() => {
-      [523, 659, 784, 1047].forEach((f, i) => note({ f, at: i * 0.09, dur: 0.55, vol: 0.065, type: 'triangle', bell: 0.2 }));
-      [0, 2, 4, 6, 7].forEach((k, i) => note({ f: PENTA[k], at: 0.42 + i * 0.05, dur: 0.55, vol: 0.032, bell: 0.3 }));
-    }),
-    // tiny soft footsteps
-    step: () => play(() => note({ f: 200 + Math.random() * 40, to: 130, dur: 0.07, vol: 0.045, echo: false })),
-    // cartoon "talking" blip for speech bubbles
-    blip: () => play(() => { const f = [880, 988, 1175, 1319, 1480][Math.floor(Math.random() * 5)]; note({ f, to: f * 1.12, dur: 0.06, vol: 0.035, type: 'triangle', echo: false, attack: 0.004 }); }),
-    // "mwah!" kiss: a little whistle up + a smack + sparkles
-    mwah: () => play(() => {
-      note({ f: 700, to: 1400, dur: 0.2, vol: 0.05, type: 'triangle', echo: false });
-      note({ f: 260, to: 1300, at: 0.21, dur: 0.06, vol: 0.12, echo: false, attack: 0.003 });
-      [4, 6].forEach((k, i) => note({ f: PENTA[k], at: 0.3 + i * 0.08, dur: 0.55, vol: 0.035, bell: 0.3 }));
-    })
+    // one soft harp note
+    pop: () => play(() => pluck(hz(rand([79, 81, 84])), { vol: 0.11 })),
+    // two gentle notes going down
+    boop: () => play(() => { pluck(hz(76), { vol: 0.09 }); pluck(hz(72), { at: 0.1, vol: 0.08 }); }),
+    // a little harp strum with a warm hum, for "added to your love box"
+    chime: () => play(() => { [72, 76, 79, 84].forEach((m, i) => pluck(hz(m), { at: i * 0.075, vol: 0.14 })); glow(hz(60), { vol: 0.022 }); glow(hz(67), { vol: 0.016 }); }),
+    // a dreamy full harp sweep for big moments
+    tada: () => play(() => { [60, 64, 67, 71, 74, 76, 79, 84].forEach((m, i) => pluck(hz(m), { at: i * 0.06, vol: 0.12 })); glow(hz(48), { dur: 2.2, vol: 0.026 }); glow(hz(64), { dur: 2.2, vol: 0.016 }); }),
+    step: () => {},
+    blip: () => {},
+    // a soft "mwah": three rising notes and a warm hum
+    mwah: () => play(() => { pluck(hz(79), { vol: 0.12 }); pluck(hz(84), { at: 0.13, vol: 0.13 }); pluck(hz(88), { at: 0.28, vol: 0.09 }); glow(hz(72), { dur: 1.5, vol: 0.022 }); })
   };
 
   /* ------------------------------------------------------------- confetti */
@@ -976,20 +983,13 @@
   const MELODY = [[76,1],[79,1],[84,1],[83,1],[81,1],[79,1],[76,2],[77,1],[81,1],[86,1],[84,1],[83,1],[79,3],
     [76,1],[79,1],[84,1],[88,1],[86,1],[84,1],[81,2],[83,1],[86,1],[79,1],[83,1],[84,4]];
   const BASS = [48, 45, 41, 43, 48, 41, 43, 48];
-  const BEAT = 0.36;
+  const BEAT = 0.44;
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
   let musicTimer = null, musicGain = null, musicArmed = false;
   function bell(f, t, dur, vol) {
-    // music-box tine: pure tone + glassy overtones that fade fast
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    g.connect(musicGain);
-    [[1, 1, 'sine', 1], [2.76, 0.2, 'sine', 0.35], [5.4, 0.05, 'sine', 0.2], [1, 0.22, 'triangle', 1]].forEach(([m, v, type, life]) => {
-      const o = ac.createOscillator(), og = ac.createGain();
-      o.type = type; o.frequency.value = f * m;
-      og.gain.setValueAtTime(v, t); og.gain.exponentialRampToValueAtTime(0.0001, t + dur * life);
-      o.connect(og).connect(g); o.start(t); o.stop(t + dur + 0.05);
-    });
+    const src = ac.createBufferSource(), g = ac.createGain();
+    src.buffer = pluckBuffer(f); g.gain.value = vol * 2.6;
+    src.connect(g).connect(musicGain); src.start(t);
   }
   function playLoop() {
     if (!musicGain) return;
@@ -1003,7 +1003,7 @@
     if (!S.musicOn || musicTimer || document.hidden) return;
     try {
       audio();
-      musicGain = ac.createGain(); musicGain.gain.value = 0.9; musicGain.connect(master); musicGain.connect(echoIn);
+      musicGain = ac.createGain(); musicGain.gain.value = 0.6; musicGain.connect(master); musicGain.connect(echoIn);
       playLoop();
     } catch (e) { /* no audio */ }
   }
