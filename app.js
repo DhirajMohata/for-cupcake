@@ -1,0 +1,902 @@
+(() => {
+  'use strict';
+
+  /* ---------------------------------------------------------------- setup */
+  const C = window.LOVE_CONFIG || {};
+  const HER = C.herName || 'My Love';
+  const ME = C.yourName || 'Me';
+  const GIFS = C.gifs || {};
+  const CHEERS = (C.cheers && C.cheers.length) ? C.cheers : ['You are amazing! 💖'];
+  const PICK_LINES = (C.pickLines && C.pickLines.length) ? C.pickLines : ['Added with love 💖'];
+  const KEY = 'lovebox-v1';
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const rand = a => a[Math.floor(Math.random() * a.length)];
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const safeUrl = u => (/^https?:\/\//i.test(String(u || '').trim()) ? String(u).trim() : '');
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+  const LEVELS = (C.levels || []).map((lv, li) => ({
+    ...lv,
+    items: (lv.items || []).map((it, ii) => ({ ...it, key: `${lv.id || 'l' + li}::${it.id || it.name || ii}` }))
+  }));
+  const ALL_ITEMS = LEVELS.flatMap((lv, li) => lv.items.map(it => ({ ...it, li, levelTitle: lv.title })));
+  const itemByKey = k => ALL_ITEMS.find(i => i.key === k);
+
+  // the whole journey, in order
+  const STEPS = [{ type: 'intro' }, { type: 'rules' }];
+  LEVELS.forEach((_, i) => STEPS.push({ type: 'map', node: i }, { type: 'level', i }, { type: 'cheer', i }));
+  const WISH_NODE = LEVELS.length, HOME_NODE = LEVELS.length + 1;
+  STEPS.push({ type: 'map', node: WISH_NODE }, { type: 'wishlist' }, { type: 'map', node: HOME_NODE }, { type: 'address' }, { type: 'final' });
+  const NODES = [...LEVELS.map(l => ({ emoji: l.emoji || '🎁', title: l.title })), { emoji: '🪄', title: 'Wish Well' }, { emoji: '🏡', title: 'Home' }];
+  const stepIndex = pred => STEPS.findIndex(pred);
+
+  // saved progress
+  const DEFAULT = { step: 0, picks: [], wishes: [], address: {}, soundOn: C.sound !== false, editing: false };
+  let S = load();
+  function load() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
+      const s = { ...DEFAULT, ...raw };
+      s.picks = (s.picks || []).filter(k => itemByKey(k));
+      s.wishes = Array.isArray(s.wishes) ? s.wishes : [];
+      s.address = s.address || {};
+      if (!(s.step >= 0 && s.step < STEPS.length)) s.step = 0;
+      return s;
+    } catch (e) { return { ...DEFAULT }; }
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode: fine */ } }
+
+  const stage = $('#stage'), modal = $('#modal'), drawer = $('#drawer'), toastEl = $('#toast');
+
+  /* ---------------------------------------------------------------- sound */
+  let ac;
+  function tone(freqs, dur = 0.12, type = 'sine', gap = 0.07, vol = 0.12) {
+    if (!S.soundOn) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      freqs.forEach((f, i) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        const t = ac.currentTime + i * gap;
+        o.type = type; o.frequency.setValueAtTime(f, t);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g).connect(ac.destination);
+        o.start(t); o.stop(t + dur + 0.03);
+      });
+    } catch (e) { /* no audio, no problem */ }
+  }
+  const sfx = {
+    pop: () => tone([620, 930], 0.09, 'sine', 0.045, 0.1),
+    boop: () => tone([440, 300], 0.12, 'sine', 0.07, 0.09),
+    chime: () => tone([784, 988, 1175, 1568], 0.28, 'triangle', 0.085, 0.1),
+    tada: () => tone([523, 659, 784, 1047, 1319, 1568], 0.4, 'triangle', 0.08, 0.11),
+    step: () => tone([260 + Math.random() * 60], 0.05, 'sine', 0, 0.035)
+  };
+
+  /* ------------------------------------------------------------- confetti */
+  let heartShape;
+  function burst(opts = {}) {
+    if (!window.confetti || reduceMotion) return;
+    try {
+      if (!heartShape && confetti.shapeFromPath) {
+        heartShape = confetti.shapeFromPath({ path: 'M167 72c19-38 37-56 75-56 42 0 76 33 76 75 0 76-76 151-151 227-76-76-151-151-151-227 0-42 33-75 75-75 38 0 57 18 76 56z' });
+      }
+      confetti({
+        particleCount: 80, spread: 75, startVelocity: 38, origin: { y: 0.6 }, scalar: 1.15, ticks: 220,
+        colors: ['#ff5fa2', '#ff8fbf', '#ffc2da', '#ffffff', '#ffb0c8', '#e8417f'],
+        shapes: heartShape ? [heartShape, heartShape, 'circle'] : undefined,
+        disableForReducedMotion: true,
+        ...opts
+      });
+    } catch (e) { /* ignore */ }
+  }
+  function bigCelebration() {
+    burst({ particleCount: 120, spread: 100, origin: { y: 0.55 } });
+    setTimeout(() => burst({ particleCount: 70, angle: 60, spread: 60, origin: { x: 0, y: 0.7 } }), 250);
+    setTimeout(() => burst({ particleCount: 70, angle: 120, spread: 60, origin: { x: 1, y: 0.7 } }), 450);
+  }
+  function burstAt(el, opts = {}) {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    burst({ particleCount: 36, spread: 60, startVelocity: 24, scalar: 0.9,
+      origin: { x: (r.left + r.width / 2) / innerWidth, y: (r.top + r.height / 2) / innerHeight }, ...opts });
+  }
+
+  /* --------------------------------------------------------- the couple 💑 */
+  function couple(mode = 'idle', cls = '', attrs = '') {
+    return `
+<svg class="couple ${mode} ${cls}" viewBox="0 0 200 165" aria-hidden="true" ${attrs}>
+  <ellipse class="shadow" cx="100" cy="158" rx="78" ry="6" fill="#e9a5c0" opacity=".35"/>
+  <path class="float-heart" d="M100 28c-6-11-22-9-22 3 0 9 13 16 22 24 9-8 22-15 22-24 0-12-16-14-22-3z" fill="#ff5fa2" stroke="#7a2e55" stroke-width="2.5"/>
+  <!-- him: a bear -->
+  <g class="char bear">
+    <rect class="leg leg-a" x="47" y="128" width="13" height="26" rx="6.5" fill="#e6b896" stroke="#7a2e55" stroke-width="2.5"/>
+    <rect class="leg leg-b" x="66" y="128" width="13" height="26" rx="6.5" fill="#e6b896" stroke="#7a2e55" stroke-width="2.5"/>
+    <path class="arm arm-free" d="M42 108q-14 8-9 22" stroke="#7a2e55" stroke-width="14" stroke-linecap="round" fill="none"/>
+    <path class="arm arm-free arm-fill" d="M42 108q-14 8-9 22" stroke="#f2cdb0" stroke-width="9" stroke-linecap="round" fill="none"/>
+    <ellipse cx="63" cy="118" rx="26" ry="24" fill="#f2cdb0" stroke="#7a2e55" stroke-width="2.5"/>
+    <ellipse cx="63" cy="123" rx="15" ry="13" fill="#fbe8d8"/>
+    <path d="M57 104l6 5 6-5" fill="#ff8fbf" stroke="#7a2e55" stroke-width="2" stroke-linejoin="round"/>
+    <g class="head">
+      <circle cx="40" cy="47" r="11" fill="#f2cdb0" stroke="#7a2e55" stroke-width="2.5"/><circle cx="40" cy="47" r="5.5" fill="#ffb3cb"/>
+      <circle cx="86" cy="47" r="11" fill="#f2cdb0" stroke="#7a2e55" stroke-width="2.5"/><circle cx="86" cy="47" r="5.5" fill="#ffb3cb"/>
+      <circle cx="63" cy="70" r="30" fill="#f2cdb0" stroke="#7a2e55" stroke-width="2.5"/>
+      <ellipse cx="63" cy="80" rx="13" ry="10" fill="#fbe8d8"/>
+      <ellipse cx="63" cy="75.5" rx="4.6" ry="3.3" fill="#4a2a35"/>
+      <path d="M58 82q5 5 10 0" stroke="#4a2a35" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <g class="eyes"><ellipse cx="51" cy="66" rx="3.5" ry="4.3" fill="#3b2230"/><ellipse cx="75" cy="66" rx="3.5" ry="4.3" fill="#3b2230"/>
+        <circle cx="52.2" cy="64.4" r="1.3" fill="#fff"/><circle cx="76.2" cy="64.4" r="1.3" fill="#fff"/></g>
+      <ellipse class="blush" cx="44" cy="79" rx="6" ry="3.6" fill="#ff7fa8" opacity=".55"/>
+      <ellipse class="blush" cx="82" cy="79" rx="6" ry="3.6" fill="#ff7fa8" opacity=".55"/>
+    </g>
+  </g>
+  <!-- her: a bunny -->
+  <g class="char bunny">
+    <rect class="leg leg-b" x="124" y="130" width="12" height="24" rx="6" fill="#fff" stroke="#7a2e55" stroke-width="2.5"/>
+    <rect class="leg leg-a" x="141" y="130" width="12" height="24" rx="6" fill="#fff" stroke="#7a2e55" stroke-width="2.5"/>
+    <path class="arm arm-free" d="M160 110q14 8 9 21" stroke="#7a2e55" stroke-width="13" stroke-linecap="round" fill="none"/>
+    <path class="arm arm-free arm-fill" d="M160 110q14 8 9 21" stroke="#fff" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <ellipse cx="138" cy="118" rx="23" ry="22" fill="#fff" stroke="#7a2e55" stroke-width="2.5"/>
+    <path d="M117 116q21-14 42 0l6 21q-27 10-54 0z" fill="#ff9cc4" stroke="#7a2e55" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="128" cy="128" r="2" fill="#fff"/><circle cx="140" cy="132" r="2" fill="#fff"/><circle cx="151" cy="127" r="2" fill="#fff"/>
+    <g class="head">
+      <g class="ears">
+        <g class="ear ear-l"><ellipse cx="124" cy="28" rx="9.5" ry="24" fill="#fff" stroke="#7a2e55" stroke-width="2.5" transform="rotate(-12 124 44)"/>
+          <ellipse cx="124" cy="30" rx="4.5" ry="16" fill="#ffb3cb" transform="rotate(-12 124 44)"/></g>
+        <g class="ear ear-r"><ellipse cx="153" cy="28" rx="9.5" ry="24" fill="#fff" stroke="#7a2e55" stroke-width="2.5" transform="rotate(14 153 44)"/>
+          <ellipse cx="153" cy="30" rx="4.5" ry="16" fill="#ffb3cb" transform="rotate(14 153 44)"/></g>
+      </g>
+      <circle cx="138" cy="72" r="28" fill="#fff" stroke="#7a2e55" stroke-width="2.5"/>
+      <g class="bow" transform="translate(156 50)">
+        <path d="M0 0l-11-8v16zM0 0l11-8v16z" fill="#ff5fa2" stroke="#7a2e55" stroke-width="2.2" stroke-linejoin="round"/>
+        <circle r="3.6" fill="#ff5fa2" stroke="#7a2e55" stroke-width="2.2"/>
+      </g>
+      <g class="eyes"><ellipse cx="128" cy="70" rx="3.4" ry="4.2" fill="#3b2230"/><ellipse cx="148" cy="70" rx="3.4" ry="4.2" fill="#3b2230"/>
+        <circle cx="129.2" cy="68.4" r="1.3" fill="#fff"/><circle cx="149.2" cy="68.4" r="1.3" fill="#fff"/></g>
+      <ellipse cx="138" cy="77" rx="3" ry="2.2" fill="#ff7fa8"/>
+      <path d="M133 81q2.5 3 5 0q2.5 3 5 0" stroke="#4a2a35" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <ellipse class="blush" cx="121" cy="80" rx="5.5" ry="3.4" fill="#ff7fa8" opacity=".6"/>
+      <ellipse class="blush" cx="155" cy="80" rx="5.5" ry="3.4" fill="#ff7fa8" opacity=".6"/>
+    </g>
+  </g>
+  <!-- holding hands -->
+  <g class="hands">
+    <path d="M84 108q8 10 16 12M116 110q-8 9-16 10" stroke="#7a2e55" stroke-width="13" stroke-linecap="round" fill="none"/>
+    <path d="M84 108q8 10 16 12" stroke="#f2cdb0" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M116 110q-8 9-16 10" stroke="#fff" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <circle cx="100" cy="120" r="5.5" fill="#ffd6e4" stroke="#7a2e55" stroke-width="2.2"/>
+  </g>
+</svg>`;
+  }
+
+  function gifOr(url, mode = 'dance') {
+    const u = safeUrl(url) || (url && !/^[a-z]+:/i.test(url) ? url : '');
+    return u
+      ? `<div class="gif-frame"><img src="${esc(u)}" alt="" data-fallback-couple="${mode}"><span class="gif-tape"></span></div>`
+      : `<div class="gif-frame mascot">${couple(mode)}</div>`;
+  }
+
+  function imgTag(it) {
+    const fb = esc(it.emoji || '🎁');
+    return it.image
+      ? `<img src="${esc(it.image)}" alt="${esc(it.name)}" loading="lazy" data-fallback="${fb}">`
+      : `<span class="emoji-tile">${fb}</span>`;
+  }
+
+  // broken image → cute emoji tile / dancing couple instead
+  document.addEventListener('error', e => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    if (img.dataset.fallback) {
+      const s = document.createElement('span'); s.className = 'emoji-tile'; s.textContent = img.dataset.fallback; img.replaceWith(s);
+    } else if (img.dataset.fallbackCouple) {
+      const frame = img.closest('.gif-frame'); if (frame) { frame.classList.add('mascot'); frame.innerHTML = couple(img.dataset.fallbackCouple); }
+    }
+  }, true);
+
+  const wavy = (txt, cls = '') => `<span class="wavy ${cls}">${[...txt].map((ch, i) => ch === ' ' ? '<span class="sp"> </span>' : `<span style="--i:${i}">${esc(ch)}</span>`).join('')}</span>`;
+
+  /* --------------------------------------------------------------- screens */
+  const SCREENS = {
+    intro: () => `
+      <section class="screen intro">
+        ${C.occasion ? `<p class="kicker pop-in" style="--d:.1s">${esc(C.occasion)}</p>` : ''}
+        <h1 class="big-title pop-in" style="--d:.2s">${wavy(HER)}</h1>
+        ${GIFS.welcome ? gifOr(GIFS.welcome, 'wave') : `<div class="mascot-stage pop-in" style="--d:.35s">${couple('wave', 'big')}</div>`}
+        <div class="bubble pop-in" style="--d:.55s">${esc(C.introLine || 'I made you a little adventure 💗')}</div>
+        <button class="btn primary big pop-in wiggle" style="--d:.75s" data-act="next">Start our adventure 💗</button>
+        <p class="tiny pop-in" style="--d:.9s">made with way too much love by ${esc(ME)}</p>
+      </section>`,
+
+    rules: () => `
+      <section class="screen rules">
+        <p class="kicker">before we go…</p>
+        <h2 class="title">A few tiny rules 🎀</h2>
+        <ol class="rule-list">
+          ${[
+            ['💖', `Only add things you truly <b>LOVE</b>. Not sure? Skip it. No pressure, ever.`],
+            ['👀', `Tap anything floating to peek. Hit <b>“Open & see it”</b> to see it in the shopping app.`],
+            ['🪄', `Didn’t find your thing? At the end there’s a <b>Wish Well</b>. Paste links of <i>anything</i> you want.`],
+            ['↩️', `Changed your mind? Go <b>back</b> anytime, or remove stuff from your love box 💝.`],
+            ['🏡', `Last stop: tell me where to deliver all the love.`]
+          ].map(([e, t], i) => `<li class="rule pop-in" style="--d:${0.1 + i * 0.12}s"><span class="rule-ico">${e}</span><span>${t}</span></li>`).join('')}
+        </ol>
+        <button class="btn primary big pop-in" style="--d:.8s" data-act="next">Pinky promise 🤙 Let’s go!</button>
+      </section>`,
+
+    map: step => {
+      const n = step.node;
+      const head = n === 0 ? `Off we go, ${esc(HER)}! 💨`
+        : n === WISH_NODE ? 'Almost there… one magic stop left ✨'
+        : n === HOME_NODE ? 'Now let me walk you home 🏡'
+        : 'Onward to the next stop! 🎈';
+      const decos = [['🌸', 28, 540], ['🌷', 335, 455], ['🍓', 34, 330], ['🌳', 330, 250], ['🌼', 190, 625], ['🍄', 40, 130], ['🌈', 300, 70], ['🦋', 180, 395], ['🌻', 330, 600], ['☁️', 60, 30]];
+      return `
+      <section class="screen map">
+        <h2 class="title small">${head}</h2>
+        <div class="map-card">
+          <svg class="map-svg" viewBox="0 0 360 700" role="img" aria-label="Map of our adventure">
+            ${decos.map(([e, x, y], i) => `<text class="deco" x="${x}" y="${y}" style="--i:${i}">${e}</text>`).join('')}
+            <path id="road" class="road-edge" d="M60 620 C200 650 340 600 290 520 S70 460 90 380 S320 320 280 240 S50 190 90 120 S260 40 300 40"/>
+            <path class="road-base" d="M60 620 C200 650 340 600 290 520 S70 460 90 380 S320 320 280 240 S50 190 90 120 S260 40 300 40"/>
+            <path class="road-dash" d="M60 620 C200 650 340 600 290 520 S70 460 90 380 S320 320 280 240 S50 190 90 120 S260 40 300 40"/>
+            <path id="roadDone" class="road-done" d="M60 620 C200 650 340 600 290 520 S70 460 90 380 S320 320 280 240 S50 190 90 120 S260 40 300 40"/>
+            <g id="steps"></g>
+            <g class="node start" data-node="-1"><text class="node-flag" y="6">🚩</text></g>
+            ${NODES.map((nd, i) => `
+              <g class="node ${i < n ? 'done' : ''} ${i === n ? 'target' : ''}" data-node="${i}">
+                <circle class="ring" r="30"/>
+                <circle class="disc" r="23"/>
+                <text class="node-emoji" y="8">${nd.emoji}</text>
+                ${i < n ? '<text class="node-check" x="17" y="-13">💗</text>' : ''}
+                <g class="label"><rect x="-64" y="28" width="128" height="22" rx="11"/><text y="43.5">${esc(nd.title.length > 16 ? nd.title.slice(0, 15) + '…' : nd.title)}</text></g>
+              </g>`).join('')}
+            <g id="walker"><g id="walkerFlip">${couple('walk', '', 'x="-50" y="-92" width="100" height="83" overflow="visible"')}</g></g>
+          </svg>
+        </div>
+        <div class="bubble map-bubble">Next stop: <b>${NODES[n].emoji} ${esc(NODES[n].title)}</b></div>
+        <button class="btn primary big" data-act="next" id="enterBtn">Enter ✨</button>
+      </section>`;
+    },
+
+    level: step => {
+      const lv = LEVELS[step.i];
+      const peekLines = ['Psst… tap anything that’s floating 👀', 'Take your time, my love 💕', 'Only the ones that make you go “aww” 🥹', 'I’m right here holding your hand 🫶'];
+      return `
+      <section class="screen level">
+        <div class="level-head">
+          <div class="level-badge">${lv.emoji || '🎁'}</div>
+          <p class="kicker">stop ${step.i + 1} of ${LEVELS.length}</p>
+          <h2 class="title">${esc(lv.title)}</h2>
+          ${lv.intro ? `<p class="sub">${esc(lv.intro)}</p>` : ''}
+        </div>
+        <div class="love-rule">💕 Only add it if you <b>love</b> it. Otherwise skip, you can paste your own picks at the end!</div>
+        <div class="float-field">
+          ${lv.items.map((it, k) => `
+            <button class="float-item ${S.picks.includes(it.key) ? 'picked' : ''}" data-act="peek" data-key="${esc(it.key)}"
+              style="--d:${(-k * 0.9).toFixed(2)}s; --r:${(k % 2 ? 2.5 : -2.5)}deg; --in:${(0.1 + k * 0.09).toFixed(2)}s">
+              <span class="tape"></span>
+              <span class="ph">${imgTag(it)}</span>
+              <span class="name">${esc(it.name)}</span>
+              ${it.price ? `<span class="price">${esc(it.price)}</span>` : ''}
+              <span class="pick-badge" aria-label="in your love box">💖</span>
+            </button>`).join('')}
+        </div>
+        <div class="peek-row">
+          <div class="mini-mascot">${couple('idle')}</div>
+          <div class="bubble left">${peekLines[step.i % peekLines.length]}</div>
+        </div>
+        ${navButtons(nextLabelForLevel(step.i))}
+      </section>`;
+    },
+
+    cheer: step => {
+      const n = LEVELS[step.i].items.filter(it => S.picks.includes(it.key)).length;
+      const total = S.picks.length + S.wishes.length;
+      const cheerGifs = GIFS.cheer || [];
+      return `
+      <section class="screen cheer">
+        ${gifOr(cheerGifs.length ? cheerGifs[step.i % cheerGifs.length] : '', 'dance')}
+        <h2 class="title pop-in" style="--d:.15s">${esc(CHEERS[step.i % CHEERS.length])}</h2>
+        <p class="sub pop-in" style="--d:.3s">${n ? `You picked ${plural(n, 'thing')} at this stop 😍` : 'Nothing caught your eye here? Totally fine, picky queen 👑'}</p>
+        <div class="stat-pill pop-in" style="--d:.45s">💝 ${plural(total, 'treasure')} in your love box so far</div>
+        <p class="tiny pop-in" style="--d:.55s">${step.i + 1 < LEVELS.length ? `${LEVELS.length - step.i - 1} more ${LEVELS.length - step.i - 1 === 1 ? 'stop' : 'stops'} to explore!` : 'All stops explored! Just the magic part left ✨'}</p>
+        <div class="nav-row single"><button class="btn primary big" data-act="next">Keep going 💨</button></div>
+      </section>`;
+    },
+
+    wishlist: () => `
+      <section class="screen wish">
+        <div class="level-head">
+          <div class="level-badge">🪄</div>
+          <p class="kicker">the magic stop</p>
+          <h2 class="title">The Wish Well</h2>
+          <p class="sub">Saw something cute <i>anywhere</i>? Amazon, Myntra, Nykaa, Insta, anywhere! Paste the link & toss it in the well ✨</p>
+        </div>
+        <div class="love-rule">💕 Only things you love, okay? As many as your heart wants.</div>
+        <div class="wish-input card">
+          <textarea id="wishText" rows="3" placeholder="Paste a link here… (you can paste a few at once)"></textarea>
+          <input id="wishNote" type="text" maxlength="140" placeholder="Note? size, colour, anything 📝 (optional)">
+          <div class="row">
+            ${navigator.clipboard && navigator.clipboard.readText ? '<button class="btn soft" data-act="wishPaste">📋 Paste</button>' : ''}
+            <button class="btn primary" data-act="wishAdd">Toss it in ✨</button>
+          </div>
+          <p class="wish-err" id="wishErr" hidden>Hmm, that doesn’t look like a link. Try copying it again 🥺</p>
+        </div>
+        <div class="well">
+          <svg viewBox="0 0 200 90" class="well-svg" aria-hidden="true">
+            <ellipse cx="100" cy="28" rx="78" ry="16" fill="#9fd8ff" stroke="#7a2e55" stroke-width="3"/>
+            <path d="M22 28v38q78 30 156 0V28" fill="#ffc2da" stroke="#7a2e55" stroke-width="3"/>
+            <path d="M22 44q78 30 156 0M22 58q78 30 156 0" stroke="#7a2e55" stroke-width="2" fill="none" opacity=".35"/>
+            <text x="100" y="34" text-anchor="middle" class="well-sparkle">✨</text>
+          </svg>
+        </div>
+        <ul class="wish-list" id="wishList"></ul>
+        ${navButtons(S.editing ? 'Save & back to my box 💝' : 'Next →', 'wishNext')}
+      </section>`,
+
+    address: () => {
+      const a = S.address;
+      const f = (id, label, opts = {}) => `
+        <label class="field ${opts.wide ? 'wide' : ''}">
+          <span>${label}${opts.req ? ' <i>*</i>' : ''}</span>
+          ${opts.area
+            ? `<textarea id="a_${id}" rows="2" placeholder="${esc(opts.ph || '')}">${esc(a[id] || '')}</textarea>`
+            : `<input id="a_${id}" value="${esc(a[id] || '')}" placeholder="${esc(opts.ph || '')}" ${opts.attrs || ''}>`}
+          <em class="err" hidden>${opts.err || 'Need this one 🥺'}</em>
+        </label>`;
+      return `
+      <section class="screen address">
+        <div class="level-head">
+          <div class="level-badge">🏡</div>
+          <p class="kicker">last stop</p>
+          <h2 class="title">Where do I send the love?</h2>
+          <p class="sub">So all your treasures find their way to you 💌</p>
+        </div>
+        <form class="addr card" id="addrForm" novalidate onsubmit="return false">
+          ${f('name', 'Your name', { req: true, ph: HER, attrs: 'autocomplete="name"' })}
+          ${f('phone', 'Phone', { req: true, ph: '98765 43210', attrs: 'inputmode="tel" autocomplete="tel"', err: 'A 10-digit number please 📱' })}
+          ${f('line1', 'House / Flat / Building', { req: true, wide: true, attrs: 'autocomplete="address-line1"' })}
+          ${f('line2', 'Street / Area', { wide: true, attrs: 'autocomplete="address-line2"' })}
+          ${f('landmark', 'Landmark', { wide: true, ph: 'near the cute café…' })}
+          ${f('city', 'City', { req: true, attrs: 'autocomplete="address-level2"' })}
+          ${f('state', 'State', { attrs: 'autocomplete="address-level1"' })}
+          ${f('pincode', 'Pincode', { req: true, attrs: 'inputmode="numeric" maxlength="6" autocomplete="postal-code"', err: '6 digits please 🔢' })}
+          ${f('notes', 'Anything else? (best time, gate code…)', { wide: true, area: true })}
+        </form>
+        <p class="tiny">🔒 This stays on your phone until you send it to ${esc(ME)}.</p>
+        ${navButtons(S.editing ? 'Save & back to my box 💝' : 'Walk me home 🏡', 'addrNext')}
+      </section>`;
+    },
+
+    final: () => {
+      const picks = S.picks.map(itemByKey).filter(Boolean);
+      const a = S.address;
+      const hasAddr = a.name && a.line1 && a.city && a.pincode;
+      const byLevel = LEVELS.map((lv, li) => ({ lv, li, its: picks.filter(p => p.li === li) })).filter(g => g.its.length);
+      return `
+      <section class="screen final">
+        ${GIFS.final ? gifOr(GIFS.final, 'dance') : `<div class="mascot-stage">${couple('dance', 'big')}</div>`}
+        <h1 class="big-title">${wavy('Your Love Box')}</h1>
+        <p class="sub">${plural(picks.length, 'treasure')} + ${S.wishes.length} ${S.wishes.length === 1 ? 'wish' : 'wishes'} 💝</p>
+
+        <div class="receipt card">
+          <div class="receipt-top"><span>💗</span> ${esc(HER)}’s Love Box <span>💗</span></div>
+          <div class="r-sec">
+            <div class="r-head"><h3>From our adventure</h3><button class="link-btn" data-act="jump" data-to="level0">edit</button></div>
+            ${byLevel.length ? byLevel.map(g => `
+              <p class="r-level">${g.lv.emoji || '🎁'} ${esc(g.lv.title)}</p>
+              <ul class="r-list">${g.its.map(it => `
+                <li><span class="r-thumb">${imgTag(it)}</span>
+                  <span class="r-name">${safeUrl(it.link) ? `<a href="${esc(safeUrl(it.link))}" target="_blank" rel="noopener">${esc(it.name)}</a>` : esc(it.name)}${it.price ? ` <small>${esc(it.price)}</small>` : ''}</span>
+                  <button class="x-btn" data-act="remove" data-key="${esc(it.key)}" aria-label="Remove ${esc(it.name)}">✕</button></li>`).join('')}
+              </ul>`).join('') : '<p class="r-empty">Nothing picked on the way, and that’s okay 💕</p>'}
+          </div>
+          <div class="r-sec">
+            <div class="r-head"><h3>From the Wish Well</h3><button class="link-btn" data-act="jump" data-to="wishlist">edit</button></div>
+            ${S.wishes.length ? `<ul class="r-list">${S.wishes.map((w, i) => `
+              <li><span class="r-thumb"><span class="emoji-tile">${storeOf(w.url).icon}</span></span>
+                <span class="r-name"><a href="${esc(w.url)}" target="_blank" rel="noopener">${esc(storeOf(w.url).name)}</a>${w.note ? `<small>📝 ${esc(w.note)}</small>` : ''}</span>
+                <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove wish">✕</button></li>`).join('')}</ul>`
+              : '<p class="r-empty">No wishes tossed in. You can still go back and add some 🪄</p>'}
+          </div>
+          <div class="r-sec">
+            <div class="r-head"><h3>Deliver to</h3><button class="link-btn" data-act="jump" data-to="address">edit</button></div>
+            ${hasAddr ? `<address class="r-addr">
+                <b>${esc(a.name)}</b> · ${esc(a.phone || '')}<br>
+                ${esc([a.line1, a.line2].filter(Boolean).join(', '))}<br>
+                ${a.landmark ? `Near ${esc(a.landmark)}<br>` : ''}
+                ${esc(a.city)}${a.state ? ', ' + esc(a.state) : ''} – ${esc(a.pincode)}
+                ${a.notes ? `<br><small>📝 ${esc(a.notes)}</small>` : ''}
+              </address>` : '<p class="r-empty">No address yet! Tap edit 🏡</p>'}
+          </div>
+          <div class="receipt-zig"></div>
+        </div>
+
+        ${C.finalNote ? `<div class="letter card"><p>${esc(C.finalNote)}</p><p class="sig">— yours, ${esc(ME)} 💌</p></div>` : ''}
+
+        <div class="final-actions">
+          <button class="btn primary big wiggle" data-act="send">Send it to ${esc(ME)} 💌</button>
+          <button class="btn soft" data-act="copy">📋 Copy everything</button>
+        </div>
+        <button class="link-btn restart" data-act="restart">start the adventure over</button>
+      </section>`;
+    }
+  };
+
+  function navButtons(nextLabel = 'Next →', nextAct = 'next') {
+    return `<div class="nav-row">
+      <button class="btn soft" data-act="back">← Back</button>
+      <button class="btn primary" data-act="${nextAct}" id="nextBtn">${nextLabel}</button>
+    </div>`;
+  }
+  function nextLabelForLevel(i) {
+    if (S.editing) return 'Save & back to my box 💝';
+    const n = LEVELS[i].items.filter(it => S.picks.includes(it.key)).length;
+    return n ? 'Next stop →' : 'Skip this stop →';
+  }
+
+  /* --------------------------------------------------------- after-render */
+  const AFTER = {
+    map: afterMap,
+    cheer: () => { sfx.tada(); setTimeout(bigCelebration, 150); },
+    wishlist: renderWishList,
+    address: bindAddress,
+    final: (_, __, dir) => { if (dir !== 0) { sfx.tada(); setTimeout(bigCelebration, 200); } }
+  };
+
+  function afterMap(step, scr) {
+    const road = $('#road', scr), done = $('#roadDone', scr), walker = $('#walker', scr), flip = $('#walkerFlip', scr);
+    const steps = $('#steps', scr), bubble = $('.map-bubble', scr);
+    const L = road.getTotalLength();
+    const tAt = n => (n < 0 ? 0 : 0.07 + 0.9 * (n / Math.max(1, NODES.length - 1))) * L;
+    $$('.node', scr).forEach(g => {
+      const p = road.getPointAtLength(tAt(+g.dataset.node));
+      g.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`);
+      const lab = $('.label', g);
+      if (lab) { const shift = Math.max(70 - p.x, Math.min(0, 290 - p.x)); lab.setAttribute('transform', `translate(${shift} 0)`); }
+    });
+    const from = tAt(step.node - 1), to = tAt(step.node);
+    done.style.strokeDasharray = `${L} ${L}`;
+    let facing = 1;
+    const place = len => {
+      const p = road.getPointAtLength(len), q = road.getPointAtLength(Math.min(L, len + 2));
+      if (Math.abs(q.x - p.x) > 0.3) facing = q.x < p.x ? -1 : 1;
+      walker.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`);
+      flip.setAttribute('transform', `scale(${facing} 1)`);
+      done.style.strokeDashoffset = L - len;
+      return p;
+    };
+    place(from);
+    // keep the walker in view on short phones
+    const target = $(`.node[data-node="${step.node}"]`, scr);
+    const arrive = () => {
+      walker.querySelector('.couple').classList.remove('walk');
+      walker.querySelector('.couple').classList.add('dance');
+      target.classList.add('arrived');
+      bubble.innerHTML = `We’re here! <b>${NODES[step.node].emoji} ${esc(NODES[step.node].title)}</b> ✨`;
+      $('#enterBtn', scr).classList.add('wiggle');
+      sfx.chime();
+      burstAt(target, { particleCount: 40 });
+    };
+    if (reduceMotion) { place(to); arrive(); return; }
+    const dur = 1500 + Math.min(1400, (to - from) * 6);
+    let t0 = null, lastPrint = 0, lastStep = 0;
+    const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    setTimeout(() => {
+      const tick = now => {
+        if (!scr.isConnected) return;
+        if (t0 === null) t0 = now;
+        const k = Math.min(1, (now - t0) / dur);
+        const p = place(from + (to - from) * ease(k));
+        if (now - lastPrint > 140 && k < 0.98) {
+          lastPrint = now;
+          const h = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          h.setAttribute('x', p.x.toFixed(1)); h.setAttribute('y', (p.y + 4).toFixed(1));
+          h.setAttribute('class', 'footprint'); h.textContent = '♥';
+          steps.appendChild(h); setTimeout(() => h.remove(), 1800);
+        }
+        if (now - lastStep > 300 && k < 0.95) { lastStep = now; sfx.step(); }
+        if (k < 1) requestAnimationFrame(tick); else arrive();
+      };
+      requestAnimationFrame(tick);
+    }, 500);
+  }
+
+  /* --------------------------------------------------------------- render */
+  function render(dir = 1) {
+    const step = STEPS[S.step];
+    document.body.dataset.screen = step.type;
+    stage.innerHTML = SCREENS[step.type](step);
+    const scr = stage.firstElementChild;
+    scr.classList.add(dir < 0 ? 'from-left' : dir > 0 ? 'from-right' : 'still');
+    window.scrollTo(0, 0);
+    $('#backBtn').style.visibility = S.step === 0 ? 'hidden' : 'visible';
+    const pct = Math.round((S.step / (STEPS.length - 1)) * 100);
+    $('#progressFill').style.width = Math.max(6, pct) + '%';
+    updateBox(false);
+    $('#soundBtn').textContent = S.soundOn ? '🔊' : '🔇';
+    AFTER[step.type] && AFTER[step.type](step, scr, dir);
+  }
+
+  function go(i, dir) {
+    S.step = Math.max(0, Math.min(STEPS.length - 1, i));
+    save(); render(dir);
+  }
+  function forward() {
+    const t = STEPS[S.step].type;
+    if (S.editing && ['level', 'wishlist', 'address'].includes(t)) {
+      S.editing = false; sfx.pop(); go(STEPS.length - 1, 1); return;
+    }
+    sfx.pop();
+    try { history.pushState({ lb: S.step + 1 }, ''); } catch (e) { /* file:// on some browsers */ }
+    go(S.step + 1, 1);
+  }
+  function backward() {
+    let i = S.step - 1;
+    while (i > 0 && ['map', 'cheer'].includes(STEPS[i].type)) i--;
+    S.editing = false;
+    sfx.boop(); go(i, -1);
+  }
+
+  /* ------------------------------------------------------------ love box */
+  function updateBox(bump = true) {
+    const n = S.picks.length + S.wishes.length;
+    $('#boxCount').textContent = n;
+    if (bump) { const b = $('#boxBtn'); b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); }
+  }
+
+  function flyHeart(fromEl) {
+    if (reduceMotion || !fromEl) return;
+    const a = fromEl.getBoundingClientRect(), b = $('#boxBtn').getBoundingClientRect();
+    for (let k = 0; k < 4; k++) {
+      const h = document.createElement('div');
+      h.className = 'fly-heart'; h.textContent = k % 2 ? '💗' : '💖';
+      document.body.appendChild(h);
+      const sx = a.left + a.width / 2 + (Math.random() - 0.5) * 40, sy = a.top + a.height / 2;
+      const ex = b.left + b.width / 2, ey = b.top + b.height / 2;
+      const mx = (sx + ex) / 2 + (Math.random() - 0.5) * 160, my = Math.min(sy, ey) - 80;
+      h.animate([
+        { transform: `translate(${sx}px, ${sy}px) scale(.6)`, opacity: 1 },
+        { transform: `translate(${mx}px, ${my}px) scale(1.4)`, opacity: 1, offset: 0.5 },
+        { transform: `translate(${ex}px, ${ey}px) scale(.4)`, opacity: 0.2 }
+      ], { duration: 850 + k * 90, easing: 'cubic-bezier(.5,0,.5,1)', delay: k * 60, fill: 'forwards' }).onfinish = () => h.remove();
+    }
+  }
+
+  function refreshAfterChange() {
+    updateBox();
+    const t = STEPS[S.step].type;
+    if (t === 'level') {
+      $$('.float-item').forEach(el => el.classList.toggle('picked', S.picks.includes(el.dataset.key)));
+      const nb = $('#nextBtn'); if (nb) nb.textContent = nextLabelForLevel(STEPS[S.step].i);
+    }
+    if (t === 'wishlist') renderWishList();
+    if (t === 'final') render(0);
+    if (drawer.classList.contains('open')) openDrawer(true);
+  }
+
+  function addPick(key, srcEl) {
+    if (!S.picks.includes(key)) S.picks.push(key);
+    save();
+    flyHeart(srcEl); burstAt(srcEl, { particleCount: 30 });
+    sfx.chime(); toast(rand(PICK_LINES));
+    closeModal();
+    refreshAfterChange();
+  }
+  function removePick(key) {
+    S.picks = S.picks.filter(k => k !== key); save();
+    sfx.boop(); toast('Okay, out it goes! 💨');
+    if (modal.classList.contains('open')) closeModal();
+    refreshAfterChange();
+  }
+
+  /* --------------------------------------------------------------- modal */
+  let lastFocus = null;
+  function openOverlay(el, html) {
+    lastFocus = document.activeElement;
+    el.innerHTML = html; el.classList.add('open'); el.setAttribute('aria-hidden', 'false');
+    const f = el.querySelector('[data-focus]') || el.querySelector('button, a');
+    f && setTimeout(() => f.focus({ preventScroll: true }), 50);
+  }
+  function closeOverlay(el) {
+    el.classList.remove('open'); el.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { if (!el.classList.contains('open')) el.innerHTML = ''; }, 300);
+    lastFocus && lastFocus.focus && lastFocus.focus({ preventScroll: true });
+  }
+  const closeModal = () => closeOverlay(modal);
+  const closeDrawer = () => closeOverlay(drawer);
+
+  function openPeek(key) {
+    const it = itemByKey(key); if (!it) return;
+    const picked = S.picks.includes(key);
+    const link = safeUrl(it.link);
+    sfx.pop();
+    openOverlay(modal, `
+      <div class="modal-card" role="dialog" aria-modal="true" aria-label="${esc(it.name)}">
+        <button class="close-x" data-act="closeModal" aria-label="Close">✕</button>
+        <div class="modal-img">${imgTag(it)}${picked ? '<span class="pick-badge on">💖</span>' : ''}</div>
+        <h3>${esc(it.name)}</h3>
+        ${it.price ? `<p class="price-tag">${esc(it.price)}</p>` : ''}
+        ${it.note ? `<p class="his-note">“${esc(it.note)}”<span>— ${esc(ME)}</span></p>` : ''}
+        ${link ? `<a class="btn ghost open-link" href="${esc(link)}" target="_blank" rel="noopener">Open &amp; see it 🛍️</a>` : ''}
+        <div class="modal-actions">
+          ${picked
+            ? `<button class="btn soft" data-act="remove" data-key="${esc(key)}">Remove 💔</button>
+               <button class="btn primary" data-act="closeModal" data-focus>Keep it ✓</button>`
+            : `<button class="btn soft" data-act="closeModal">Maybe later</button>
+               <button class="btn primary" data-act="add" data-key="${esc(key)}" data-focus>I love it! 💖</button>`}
+        </div>
+        <p class="tiny">${picked ? 'Already in your love box 💝' : 'only if your heart says yes 💗'}</p>
+      </div>`);
+  }
+
+  function openDrawer(silent) {
+    const picks = S.picks.map(itemByKey).filter(Boolean);
+    const n = picks.length + S.wishes.length;
+    if (!silent) sfx.pop();
+    const html = `
+      <div class="drawer-card" role="dialog" aria-modal="true" aria-label="Your love box">
+        <div class="drawer-head"><h3>💝 Your Love Box</h3><button class="close-x" data-act="closeDrawer" aria-label="Close">✕</button></div>
+        ${n === 0 ? `<div class="empty">${couple('idle')}<p>Empty for now… go find something you love! 🥺</p></div>` : ''}
+        ${picks.length ? `<h4>Picked on the way</h4><ul class="r-list">${picks.map(it => `
+          <li><span class="r-thumb">${imgTag(it)}</span><span class="r-name">${esc(it.name)}<small>${esc(it.levelTitle)}</small></span>
+          <button class="x-btn" data-act="remove" data-key="${esc(it.key)}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : ''}
+        ${S.wishes.length ? `<h4>From the Wish Well</h4><ul class="r-list">${S.wishes.map((w, i) => `
+          <li><span class="r-thumb"><span class="emoji-tile">${storeOf(w.url).icon}</span></span><span class="r-name">${esc(storeOf(w.url).name)}${w.note ? `<small>📝 ${esc(w.note)}</small>` : ''}</span>
+          <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : ''}
+        <p class="tiny">Remove anything you’re not in love with anymore 💕</p>
+      </div>`;
+    if (silent && drawer.classList.contains('open')) drawer.innerHTML = html; else openOverlay(drawer, html);
+  }
+
+  /* ------------------------------------------------------------ wish well */
+  const STORES = [
+    [/amazon\.|amzn\./, '🛒', 'Amazon'], [/myntra/, '👗', 'Myntra'], [/flipkart|fkrt/, '🛍️', 'Flipkart'],
+    [/nykaa/, '💄', 'Nykaa'], [/ajio/, '👠', 'AJIO'], [/meesho/, '🧺', 'Meesho'], [/zara\./, '🖤', 'Zara'],
+    [/hm\.com|h&m/, '❤️', 'H&M'], [/purplle/, '💜', 'Purplle'], [/sugarcosmetics/, '💋', 'SUGAR'],
+    [/tatacliq/, '✨', 'Tata CLiQ'], [/shein/, '🎀', 'SHEIN'], [/uniqlo/, '🧣', 'Uniqlo'], [/etsy/, '🧶', 'Etsy'],
+    [/instagram|instagr\.am/, '📸', 'Instagram'], [/pinterest|pin\.it/, '📌', 'Pinterest'], [/blinkit|zepto|swiggy|bigbasket/, '🛵', 'Quick delivery'],
+    [/mamaearth/, '🌿', 'Mamaearth'], [/minimalist|beminimalist/, '🧴', 'Minimalist'], [/lenskart/, '👓', 'Lenskart'],
+    [/firstcry/, '🧸', 'FirstCry'], [/fabindia/, '🪡', 'Fabindia'], [/bewakoof/, '👕', 'Bewakoof'], [/croma|reliancedigital/, '🎧', 'Gadgets']
+  ];
+  function storeOf(url) {
+    let host = '';
+    try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) { host = String(url).slice(0, 30); }
+    const m = STORES.find(([re]) => re.test(host.toLowerCase()));
+    return m ? { icon: m[1], name: m[2], host } : { icon: '✨', name: host || 'A cute link', host };
+  }
+  function extractUrls(text) {
+    const re = /https?:\/\/[^\s<>"']+/gi;
+    const found = String(text || '').match(re) || [];
+    // links pasted without https, like "amazon.in/dp/xyz"
+    const rest = String(text || '').replace(re, ' ');
+    (rest.match(/\b(?:[a-z0-9-]+\.)+(?:com|in|co|net|org|shop|store|me|io|app|ly|gl|it|page)\b(?:\/[^\s<>"']*)?/gi) || []).forEach(u => found.push('https://' + u));
+    return [...new Set(found.map(u => u.replace(/[),.;!]+$/, '')))].filter(u => { try { new URL(u); return true; } catch (e) { return false; } });
+  }
+  function addWishes(text, note) {
+    const urls = extractUrls(text);
+    const err = $('#wishErr');
+    if (!urls.length) { if (err) err.hidden = false; $('.wish-input')?.classList.add('shake'); setTimeout(() => $('.wish-input')?.classList.remove('shake'), 500); sfx.boop(); return; }
+    if (err) err.hidden = true;
+    let added = 0;
+    urls.forEach(u => { if (!S.wishes.some(w => w.url === u)) { S.wishes.push({ url: u, note: urls.length === 1 ? (note || '') : '' }); added++; } });
+    save();
+    $('#wishText').value = ''; $('#wishNote').value = '';
+    const well = $('.well');
+    if (well) { well.classList.remove('splash'); void well.offsetWidth; well.classList.add('splash'); }
+    flyHeart($('.well-svg')); burstAt($('.well-svg'), { particleCount: 34 });
+    sfx.chime();
+    toast(added ? (added > 1 ? `${added} wishes tossed in! 🪄` : rand(['Wish granted… probably 😉', 'Into the well it goes! 🪄', 'Ooh what is it?? 👀'])) : 'Already in the well, silly 😄');
+    refreshAfterChange();
+  }
+  function renderWishList() {
+    const ul = $('#wishList'); if (!ul) return;
+    ul.innerHTML = S.wishes.length ? S.wishes.map((w, i) => {
+      const st = storeOf(w.url);
+      return `<li class="wish-item" style="--in:${(i * 0.05).toFixed(2)}s">
+        <span class="wish-ico">${st.icon}</span>
+        <div class="wish-body">
+          <a href="${esc(w.url)}" target="_blank" rel="noopener"><b>${esc(st.name)}</b> <span>${esc(w.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 42))}${w.url.length > 50 ? '…' : ''}</span></a>
+          <input class="wish-note-edit" data-wishnote="${i}" value="${esc(w.note || '')}" maxlength="140" placeholder="add a note (size, colour…)">
+        </div>
+        <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove wish">✕</button>
+      </li>`;
+    }).join('') : `<li class="wish-empty">Your well is waiting for wishes ✨<br><small>No wishes? Totally okay, just tap next!</small></li>`;
+    const nb = $('#nextBtn');
+    if (nb && !S.editing) nb.textContent = S.wishes.length ? 'Next →' : 'Skip →';
+  }
+
+  /* -------------------------------------------------------------- address */
+  const ADDR_FIELDS = ['name', 'phone', 'line1', 'line2', 'landmark', 'city', 'state', 'pincode', 'notes'];
+  function bindAddress() {
+    ADDR_FIELDS.forEach(id => {
+      const el = $('#a_' + id); if (!el) return;
+      el.addEventListener('input', () => {
+        S.address[id] = el.value; save();
+        el.closest('.field').classList.remove('bad');
+        $('.err', el.closest('.field')).hidden = true;
+      });
+    });
+  }
+  function validateAddress() {
+    const a = S.address, bad = [];
+    if (!(a.name || '').trim()) bad.push('name');
+    if (((a.phone || '').replace(/\D/g, '').replace(/^(91|0)(?=\d{10}$)/, '')).length !== 10) bad.push('phone');
+    if (!(a.line1 || '').trim()) bad.push('line1');
+    if (!(a.city || '').trim()) bad.push('city');
+    if (!/^\d{6}$/.test((a.pincode || '').trim())) bad.push('pincode');
+    ADDR_FIELDS.forEach(id => {
+      const el = $('#a_' + id); if (!el) return;
+      const f = el.closest('.field'), isBad = bad.includes(id);
+      f.classList.toggle('bad', isBad); $('.err', f).hidden = !isBad;
+    });
+    if (bad.length) {
+      const first = $('#a_' + bad[0]); first && first.focus();
+      const form = $('#addrForm'); form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake');
+      sfx.boop(); toast('Just a couple of things missing 🥺');
+      return false;
+    }
+    return true;
+  }
+
+  /* ---------------------------------------------------------- send / copy */
+  function buildMessage() {
+    const out = [`💝 ${HER}'s Love Box 💝`, ''];
+    const picks = S.picks.map(itemByKey).filter(Boolean);
+    if (picks.length) {
+      out.push('✨ Picked on our adventure:');
+      picks.forEach((it, i) => {
+        out.push(`${i + 1}. ${it.name}${it.price ? ` (${it.price})` : ''}`);
+        if (safeUrl(it.link)) out.push(`   ${safeUrl(it.link)}`);
+      });
+      out.push('');
+    }
+    if (S.wishes.length) {
+      out.push('🪄 From my Wish Well:');
+      S.wishes.forEach((w, i) => { out.push(`${i + 1}. ${w.url}`); if (w.note) out.push(`   📝 ${w.note}`); });
+      out.push('');
+    }
+    if (!picks.length && !S.wishes.length) out.push('(Just you is enough 🥹)', '');
+    const a = S.address;
+    if (a.name || a.line1) {
+      out.push('🏡 Deliver to:');
+      if (a.name) out.push(a.name);
+      if (a.phone) out.push(`📞 ${a.phone}`);
+      const l = [a.line1, a.line2].filter(Boolean).join(', '); if (l) out.push(l);
+      if (a.landmark) out.push(`Landmark: ${a.landmark}`);
+      out.push(`${a.city || ''}${a.state ? ', ' + a.state : ''}${a.pincode ? ' - ' + a.pincode : ''}`);
+      if (a.notes) out.push(`📝 ${a.notes}`);
+      out.push('');
+    }
+    out.push(`Love you ${ME} 💗`);
+    return out.join('\n');
+  }
+  async function copyText(txt) {
+    try { await navigator.clipboard.writeText(txt); return true; } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { /* */ }
+      ta.remove(); return ok;
+    }
+  }
+  function send() {
+    const a = S.address;
+    if (!(a.name && a.line1 && a.city && a.pincode)) {
+      toast('Wait! I need your address first 🏡'); sfx.boop();
+      setTimeout(() => { S.editing = true; go(stepIndex(s => s.type === 'address'), -1); }, 700);
+      return;
+    }
+    const num = String(C.whatsappNumber || '').replace(/\D/g, '');
+    const url = `https://wa.me/${/^\d{8,15}$/.test(num) ? num : ''}?text=${encodeURIComponent(buildMessage())}`;
+    window.open(url, '_blank', 'noopener');
+    sfx.tada(); bigCelebration();
+    setTimeout(() => openOverlay(modal, `
+      <div class="modal-card sent" role="dialog" aria-modal="true" aria-label="Sent">
+        ${GIFS.sent ? gifOr(GIFS.sent, 'dance') : `<div class="mascot-stage">${couple('dance', 'big')}</div>`}
+        <h3>${wavy('Yaaay!')}</h3>
+        <p>Your love box is on its way to ${esc(ME)} 💌<br>Now sit back… surprises are coming 😘</p>
+        <p class="tiny">WhatsApp didn’t open? Use “Copy everything” and paste it to him.</p>
+        <button class="btn primary" data-act="closeModal" data-focus>Aww okay 🥹</button>
+      </div>`), 600);
+  }
+
+  /* -------------------------------------------------------------- toast */
+  let toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.remove('show'); void toastEl.offsetWidth; toastEl.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+
+  /* ------------------------------------------------------------- actions */
+  const ACTIONS = {
+    next: () => forward(),
+    back: () => { if (S.step > 0) backward(); },
+    peek: el => openPeek(el.dataset.key),
+    add: el => addPick(el.dataset.key, el),
+    remove: el => removePick(el.dataset.key),
+    closeModal: () => { sfx.boop(); closeModal(); },
+    openBox: () => openDrawer(),
+    closeDrawer: () => { sfx.boop(); closeDrawer(); },
+    sound: () => { S.soundOn = !S.soundOn; save(); $('#soundBtn').textContent = S.soundOn ? '🔊' : '🔇'; sfx.pop(); },
+    wishAdd: () => addWishes($('#wishText').value, $('#wishNote').value.trim()),
+    wishPaste: async () => {
+      try { const t = await navigator.clipboard.readText(); if (t) { $('#wishText').value = t; addWishes(t, $('#wishNote').value.trim()); } }
+      catch (e) { toast('Long-press the box & tap Paste 📋'); $('#wishText').focus(); }
+    },
+    wishRemove: el => { S.wishes.splice(+el.dataset.i, 1); save(); sfx.boop(); toast('Poof! Wish removed 💨'); refreshAfterChange(); },
+    wishNext: () => forward(),
+    addrNext: () => { if (validateAddress()) forward(); },
+    jump: el => {
+      const to = el.dataset.to;
+      const i = to === 'level0' ? stepIndex(s => s.type === 'level') : stepIndex(s => s.type === to);
+      if (i < 0) return;
+      S.editing = true; sfx.pop(); go(i, -1);
+    },
+    send: () => send(),
+    copy: async () => { const ok = await copyText(buildMessage()); sfx.chime(); toast(ok ? 'Copied! Paste it to him 💌' : 'Couldn’t copy, try Send instead 🥺'); },
+    restart: () => {
+      if (!confirm('Start the whole adventure again? Your love box will be emptied.')) return;
+      S = { ...DEFAULT, soundOn: S.soundOn }; save(); go(0, -1);
+    }
+  };
+
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-act]');
+    if (el && ACTIONS[el.dataset.act]) { e.preventDefault(); ACTIONS[el.dataset.act](el, e); return; }
+    if (e.target === modal) closeModal();
+    if (e.target === drawer) closeDrawer();
+  });
+  document.addEventListener('input', e => {
+    const i = e.target.dataset && e.target.dataset.wishnote;
+    if (i !== undefined && S.wishes[+i]) { S.wishes[+i].note = e.target.value; save(); }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { if (modal.classList.contains('open')) closeModal(); else if (drawer.classList.contains('open')) closeDrawer(); }
+    if (e.key === 'Enter' && e.target.id === 'wishText' && !e.shiftKey) { e.preventDefault(); ACTIONS.wishAdd(); }
+    if (e.key === 'Enter' && e.target.id === 'wishNote') { e.preventDefault(); ACTIONS.wishAdd(); }
+  });
+  window.addEventListener('popstate', () => {
+    if (modal.classList.contains('open')) closeModal();
+    else if (drawer.classList.contains('open')) closeDrawer();
+    else if (S.step > 0) backward();
+  });
+
+  /* ------------------------------------------------------- ambient magic */
+  // floating hearts & sparkles in the background
+  (function floaties() {
+    const box = $('#floaties');
+    const kinds = ['♥', '♥', '♥', '✦', '✿', '♡'];
+    const cols = ['#ff8fbf', '#ffb3cf', '#ffffff', '#ff5fa2', '#ffd1e3'];
+    const count = reduceMotion ? 0 : (innerWidth < 600 ? 14 : 24);
+    for (let k = 0; k < count; k++) {
+      const s = document.createElement('span');
+      s.textContent = rand(kinds);
+      s.style.cssText = `left:${Math.random() * 100}%;font-size:${12 + Math.random() * 22}px;color:${rand(cols)};` +
+        `animation-duration:${10 + Math.random() * 14}s;animation-delay:${-Math.random() * 20}s;--sway:${(Math.random() * 60 - 30).toFixed(0)}px`;
+      box.appendChild(s);
+    }
+  })();
+
+  // tap anywhere → little heart pop
+  document.addEventListener('pointerdown', e => {
+    if (reduceMotion || e.target.closest('input, textarea, select')) return;
+    for (let k = 0; k < 6; k++) {
+      const h = document.createElement('span');
+      h.className = 'tap-heart'; h.textContent = k % 3 ? '♥' : '✦';
+      const ang = (Math.PI * 2 * k) / 6 + Math.random() * 0.5, dist = 28 + Math.random() * 26;
+      h.style.cssText = `left:${e.clientX}px;top:${e.clientY}px;--dx:${(Math.cos(ang) * dist).toFixed(0)}px;--dy:${(Math.sin(ang) * dist - 14).toFixed(0)}px`;
+      document.body.appendChild(h); setTimeout(() => h.remove(), 750);
+    }
+  }, { passive: true });
+
+  /* ----------------------------------------------------------------- go! */
+  try { history.replaceState({ lb: S.step }, ''); } catch (e) { /* */ }
+  render(0);
+})();

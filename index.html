@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>A Little Adventure 💗</title>
+  <meta name="theme-color" content="#ffd9e8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Quicksand:wght@500;600;700&family=Sniglet:wght@400;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- dreamy background -->
+  <div id="sky" aria-hidden="true">
+    <div class="sun"></div>
+    <div class="cloud cl1"></div>
+    <div class="cloud cl2"></div>
+    <div class="cloud cl3"></div>
+    <svg class="hills" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path d="M0 140 C 240 60 420 60 640 130 S 1060 200 1440 100 L1440 220 L0 220 Z" fill="#ffe1ec"/>
+      <path d="M0 180 C 300 120 520 150 780 180 S 1200 150 1440 170 L1440 220 L0 220 Z" fill="#fff3f7"/>
+    </svg>
+  </div>
+  <div id="floaties" aria-hidden="true"></div>
+
+  <header id="topbar">
+    <button id="backBtn" class="icon-btn" data-act="back" aria-label="Go back">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div id="progress" aria-hidden="true"><div id="progressFill"><span id="progressHeart">💗</span></div></div>
+    <button id="boxBtn" class="box-btn" data-act="openBox" aria-label="Open your love box">
+      <span class="box-ico">💝</span><span id="boxCount">0</span>
+    </button>
+    <button id="soundBtn" class="icon-btn" data-act="sound" aria-label="Toggle sound">🔊</button>
+  </header>
+
+  <main id="stage"></main>
+
+  <div id="modal" class="overlay" aria-hidden="true"></div>
+  <div id="drawer" class="overlay" aria-hidden="true"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
