@@ -107,10 +107,36 @@
       origin: { x: (r.left + r.width / 2) / innerWidth, y: (r.top + r.height / 2) / innerHeight }, ...opts });
   }
 
+
+  // tiny phone buzz on happy moments (Android; iPhones simply ignore it)
+  const buzz = p => { try { if (!reduceMotion && navigator.vibrate) navigator.vibrate(p); } catch (e) { /* */ } };
+
+  // speech bubbles type themselves out, with soft little blips
+  const graphemes = t => (window.Intl && Intl.Segmenter) ? [...new Intl.Segmenter().segment(t)].map(x => x.segment) : [...t];
+  function typeInto(el, text, delay = 0) {
+    clearTimeout(el._tt);
+    el.setAttribute('aria-label', text);
+    if (reduceMotion) { el.textContent = text; return; }
+    const parts = graphemes(text);
+    el.style.minHeight = el.offsetHeight ? el.offsetHeight + 'px' : '';
+    el.textContent = '';
+    let i = 0;
+    const step = () => {
+      if (!el.isConnected) return;
+      el.textContent = parts.slice(0, ++i).join('');
+      if (i % 3 === 1 && /\S/.test(parts[i - 1])) tone([1150 + Math.random() * 250], 0.035, 'sine', 0, 0.018);
+      if (i < parts.length) el._tt = setTimeout(step, /[.,!?…]/.test(parts[i - 1]) ? 160 : 26);
+      else el.style.minHeight = '';
+    };
+    el._tt = setTimeout(step, delay);
+  }
+
   /* --------------------------------------------------------- the couple 💑 */
+  const heartAt = (x, y) => `<path d="M${x} ${y + 3.6}c-3-2.3-6-4.2-6-7 0-1.9 1.4-3.2 3.1-3.2 1.3 0 2.3.7 2.9 1.8.6-1.1 1.6-1.8 2.9-1.8 1.7 0 3.1 1.3 3.1 3.2 0 2.8-3 4.7-6 7z"/>`;
+  const PARTY = C.partyHats !== false ? 'party' : '';
   function couple(mode = 'idle', cls = '', attrs = '') {
     return `
-<svg class="couple ${mode} ${cls}" viewBox="0 0 200 165" aria-hidden="true" ${attrs}>
+<svg class="couple ${mode} ${cls} ${PARTY}" viewBox="0 0 200 165" aria-hidden="true" ${attrs}>
   <ellipse class="shadow" cx="100" cy="158" rx="78" ry="6" fill="#e9a5c0" opacity=".35"/>
   <path class="float-heart" d="M100 28c-6-11-22-9-22 3 0 9 13 16 22 24 9-8 22-15 22-24 0-12-16-14-22-3z" fill="#ff5fa2" stroke="#7a2e55" stroke-width="2.5"/>
   <!-- him: a bear -->
@@ -130,9 +156,12 @@
       <ellipse cx="63" cy="75.5" rx="4.6" ry="3.3" fill="#4a2a35"/>
       <path d="M58 82q5 5 10 0" stroke="#4a2a35" stroke-width="2.2" fill="none" stroke-linecap="round"/>
       <g class="look"><g class="eyes"><ellipse cx="51" cy="66" rx="3.5" ry="4.3" fill="#3b2230"/><ellipse cx="75" cy="66" rx="3.5" ry="4.3" fill="#3b2230"/>
-        <circle cx="52.2" cy="64.4" r="1.3" fill="#fff"/><circle cx="76.2" cy="64.4" r="1.3" fill="#fff"/></g></g>
+        <circle cx="52.2" cy="64.4" r="1.3" fill="#fff"/><circle cx="76.2" cy="64.4" r="1.3" fill="#fff"/></g><g class="heart-eyes">${heartAt(51, 66)}${heartAt(75, 66)}</g></g>
       <ellipse class="blush" cx="44" cy="79" rx="6" ry="3.6" fill="#ff7fa8" opacity=".55"/>
       <ellipse class="blush" cx="82" cy="79" rx="6" ry="3.6" fill="#ff7fa8" opacity=".55"/>
+      <g class="hat"><path d="M51 45 L59 13 L75 43 Q63 49 51 45z" fill="#ff5fa2" stroke="#7a2e55" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="61" cy="34" r="2" fill="#fff"/><circle cx="66" cy="41" r="2" fill="#fff"/><circle cx="58" cy="24" r="1.8" fill="#fff"/>
+        <circle cx="59" cy="12" r="5" fill="#ffd166" stroke="#7a2e55" stroke-width="2.2"/></g>
     </g>
   </g>
   <!-- her: a bunny -->
@@ -157,11 +186,14 @@
         <circle r="3.6" fill="#ff5fa2" stroke="#7a2e55" stroke-width="2.2"/>
       </g>
       <g class="look"><g class="eyes"><ellipse cx="128" cy="70" rx="3.4" ry="4.2" fill="#3b2230"/><ellipse cx="148" cy="70" rx="3.4" ry="4.2" fill="#3b2230"/>
-        <circle cx="129.2" cy="68.4" r="1.3" fill="#fff"/><circle cx="149.2" cy="68.4" r="1.3" fill="#fff"/></g></g>
+        <circle cx="129.2" cy="68.4" r="1.3" fill="#fff"/><circle cx="149.2" cy="68.4" r="1.3" fill="#fff"/></g><g class="heart-eyes">${heartAt(128, 70)}${heartAt(148, 70)}</g></g>
       <ellipse cx="138" cy="77" rx="3" ry="2.2" fill="#ff7fa8"/>
       <path d="M133 81q2.5 3 5 0q2.5 3 5 0" stroke="#4a2a35" stroke-width="2" fill="none" stroke-linecap="round"/>
       <ellipse class="blush" cx="121" cy="80" rx="5.5" ry="3.4" fill="#ff7fa8" opacity=".6"/>
       <ellipse class="blush" cx="155" cy="80" rx="5.5" ry="3.4" fill="#ff7fa8" opacity=".6"/>
+      <g class="hat"><path d="M127 47 L140 18 L150 47 Q138 52 127 47z" fill="#9fd8ff" stroke="#7a2e55" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="138" cy="38" r="1.9" fill="#ff5fa2"/><circle cx="143" cy="44" r="1.9" fill="#ff5fa2"/><circle cx="139.5" cy="28" r="1.7" fill="#ff5fa2"/>
+        <circle cx="140" cy="17" r="4.6" fill="#fff" stroke="#7a2e55" stroke-width="2.2"/></g>
     </g>
   </g>
   <!-- holding hands -->
@@ -208,7 +240,7 @@
         ${C.occasion ? `<p class="kicker pop-in" style="--d:.1s">${esc(C.occasion)}</p>` : ''}
         <h1 class="big-title pop-in" style="--d:.2s">${wavy(HER)}</h1>
         ${GIFS.welcome ? gifOr(GIFS.welcome, 'wave') : `<div class="mascot-stage pop-in" style="--d:.35s">${couple('wave', 'big')}</div>`}
-        <div class="bubble pop-in" style="--d:.55s">${esc(C.introLine || 'I made you a little adventure 💗')}</div>
+        <div class="bubble pop-in" style="--d:.55s" data-type="700">${esc(C.introLine || 'I made you a little adventure 💗')}</div>
         <button class="btn primary big pop-in wiggle" style="--d:.75s" data-act="next">Start our adventure 💗</button>
         <p class="tiny pop-in" style="--d:.9s">made with way too much love by ${esc(ME)}</p>
       </section>`,
@@ -289,7 +321,7 @@
         </div>
         <div class="peek-row">
           <div class="mini-mascot">${couple('idle')}</div>
-          <div class="bubble left">${peekLines[step.i % peekLines.length]}</div>
+          <div class="bubble left" data-type="400">${peekLines[step.i % peekLines.length]}</div>
         </div>
         ${navButtons(nextLabelForLevel(step.i))}
       </section>`;
@@ -479,7 +511,7 @@
     const target = $(`.node[data-node="${step.node}"]`, scr);
     const arrive = () => {
       walker.querySelector('.couple').classList.remove('walk');
-      walker.querySelector('.couple').classList.add('dance');
+      walker.querySelector('.couple').classList.add('dance', 'happy');
       target.classList.add('arrived');
       bubble.innerHTML = `We’re here! <b>${NODES[step.node].emoji} ${esc(NODES[step.node].title)}</b> ✨`;
       $('#enterBtn', scr).classList.add('wiggle');
@@ -525,6 +557,7 @@
     $('#soundBtn').textContent = S.soundOn ? '🔊' : '🔇';
     $('#musicBtn').classList.toggle('off', !S.musicOn);
     AFTER[step.type] && AFTER[step.type](step, scr, dir);
+    $$('[data-type]', scr).forEach(el => typeInto(el, el.textContent, +el.dataset.type || 0));
   }
 
   function go(i, dir) {
@@ -588,7 +621,7 @@
     if (!S.picks.includes(key)) S.picks.push(key);
     save();
     flyHeart(srcEl); burstAt(srcEl, { particleCount: 30 });
-    sfx.chime(); toast(rand(PICK_LINES));
+    sfx.chime(); toast(rand(PICK_LINES)); buzz(18);
     closeModal();
     refreshAfterChange();
     mascotReact();
@@ -975,11 +1008,14 @@
     const env = $('#envelope');
     if (env.classList.contains('opening')) return;
     env.classList.add('opening');
-    sfx.chime(); startMusic();
+    sfx.chime(); startMusic(); buzz([20, 50, 20]);
     const flap = $('.e-flap', env), letter = $('.e-letter', env);
     setTimeout(() => flap.parentNode.insertBefore(flap, letter), 280);
     setTimeout(() => { sfx.tada(); bigCelebration(); }, 950);
-    setTimeout(() => env.classList.add('gone'), 1900);
+    setTimeout(() => {
+      env.classList.add('gone');
+      $$('#stage [data-type]').forEach(el => typeInto(el, el.getAttribute('aria-label') || el.textContent, 450));
+    }, 1900);
     setTimeout(() => { env.hidden = true; env.innerHTML = ''; env.classList.remove('opening', 'gone'); }, 2600);
   };
 
@@ -989,7 +1025,7 @@
     if (!m) return;
     m.classList.remove('idle'); m.classList.add('dance', 'happy');
     if (b) {
-      b.textContent = rand(['Yaaay!! 🥳', 'Eeee good pick! 🙈', '*happy bunny noises* 🐰💕', 'Ooh that’s a cute one 😍', 'Another one?? 😍', 'We approve!! 💯']);
+      typeInto(b, rand(['Yaaay!! 🥳', 'Eeee good pick! 🙈', '*happy bunny noises* 🐰💕', 'Ooh that’s a cute one 😍', 'Another one?? 😍', 'We approve!! 💯']));
       b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing');
     }
     clearTimeout(mascotReact.t);
@@ -998,7 +1034,8 @@
 
   // catch a kiss 😘
   ACTIONS.kiss = el => {
-    tone([880, 1320, 1760], 0.16, 'sine', 0.06, 0.09);
+    tone([880, 1320, 1760], 0.16, 'sine', 0.06, 0.09); buzz([12, 40, 12]);
+    $$('.final svg.couple').forEach(c => { c.classList.add('happy'); clearTimeout(c._h); c._h = setTimeout(() => c.classList.remove('happy'), 1800); });
     toast(rand(['Mwah! 💋', 'Caught it? 😘', 'Kiss delivered 💌', 'Mwah mwah mwah 💕']));
     const m = $('.final .mascot-stage .couple, .final .gif-frame');
     if (m) { m.classList.remove('boing'); void m.getBoundingClientRect(); m.classList.add('boing'); }

@@ -623,3 +623,10 @@ body[data-screen="intro"] .box-btn, body[data-screen="rules"] .box-btn { opacity
 @keyframes trailFall { to { transform: translateY(20px) scale(.3) rotate(120deg); opacity: 0; } }
 @keyframes petalFall { from { translate: 0 0; } to { translate: 70px 112vh; } }
 @keyframes petalSpin { from { rotate: -40deg; } to { rotate: 220deg; } }
+
+/* party hats & heart eyes */
+.couple .hat { display: none; }
+.couple.party .hat { display: inline; }
+.couple .heart-eyes { display: none; fill: #ff3d8b; stroke: #7a2e55; stroke-width: 1.3; stroke-linejoin: round; }
+.couple.happy .eyes { display: none; }
+.couple.happy .heart-eyes { display: inline; animation: beatPlain .9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
