@@ -41,7 +41,7 @@ window.LOVE_CONFIG = {
       "https://media.giphy.com/media/gRSqTmhQ3ayroAQ04S/giphy.gif", "https://media.giphy.com/media/97Dk9XfZlth5xY77y1/giphy.gif", "https://media.giphy.com/media/VZJn6HJfcWaxuX5nLg/giphy.gif"
     ],
     wish: "https://media.giphy.com/media/MESDm2ngLusbCIeGiy/giphy.gif",       // Wish Well stop ("I love you so much")
-    home: "https://media.giphy.com/media/dx8oKjpQlfBzIXPKd2/giphy.gif",       // address stop (walking home hand in hand)
+    home: "https://media.giphy.com/media/ducqwvT9PJcda4TQRn/giphy.gif",       // address stop (cute couple walking hand in hand)
     final: "https://media.giphy.com/media/MfhUoRSp05AxeSIoSW/giphy.gif",      // big cosy hug
     sent: "https://media.giphy.com/media/s6fnVyWTfM2nUKuMVY/giphy.gif"        // happy squeeze after she sends
   },
