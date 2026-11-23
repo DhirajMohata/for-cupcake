@@ -630,3 +630,16 @@ body[data-screen="intro"] .box-btn, body[data-screen="rules"] .box-btn { opacity
 .couple .heart-eyes { display: none; fill: #ff3d8b; stroke: #7a2e55; stroke-width: 1.3; stroke-linejoin: round; }
 .couple.happy .eyes { display: none; }
 .couple.happy .heart-eyes { display: inline; animation: beatPlain .9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
+/* GIF stickers that pop up between moments */
+#gifPop {
+  position: fixed; z-index: 65; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom));
+  width: 150px; padding: 7px; background: #fff; border: var(--outline); border-radius: 20px; box-shadow: 0 5px 0 var(--ink);
+  transform: translateX(-50%) scale(0) rotate(-20deg); opacity: 0; pointer-events: none;
+  transition: transform .45s var(--bounce), opacity .25s;
+}
+#gifPop.show { transform: translateX(-50%) scale(1) rotate(var(--tilt, 0deg)); opacity: 1; }
+#gifPop img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; background: var(--pink-100); }
+#gifPop .gif-tape { top: -11px; left: 50%; margin-left: -40px; transform: rotate(-6deg); }
+.level-badge.gif-badge { width: 104px; height: 104px; padding: 5px; overflow: hidden; }
+.level-badge.gif-badge img { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; display: block; }

@@ -26,15 +26,26 @@ window.LOVE_CONFIG = {
   // GIF links (Giphy/Tenor ".gif" links or files in /gifs). Empty = cartoon couple dances instead.
   gifs: {
     welcome: "",                          // empty = our own cartoon couple waves hello
-    cheer: [                              // one per stop, repeats if fewer
-      "https://media.giphy.com/media/XMYKIIPTeq9ejnXFcQ/giphy.gif",
-      "https://media.giphy.com/media/4JNq1qXXOBFoD0fjt2/giphy.gif",
-      "https://media.giphy.com/media/a0aQKr2zTcbJCfiJpY/giphy.gif",
-      "https://media.giphy.com/media/QIvKVRTxAoUJghw18M/giphy.gif"
+    cheer: [                              // big GIF after each stop (repeats if fewer)
+      "https://media.giphy.com/media/ghj8H8y7AgqEia4yLH/giphy.gif",          // otters kissing
+      "https://media.giphy.com/media/3Dmph5YAQgSJtSdU6h/giphy.gif",          // bunny & bear hug
+      "https://media.giphy.com/media/HKSCIemjPlb6T8QY76/giphy.gif",          // big cuddle
+      "https://media.giphy.com/media/Mk8mJM6SQzOin6Gnhb/giphy.gif"           // couple hug
     ],
+    reactions: [                          // little sticker that pops up when she adds something
+      "https://media.giphy.com/media/hJioaFkX7sjSe7Tkd1/giphy.gif", "https://media.giphy.com/media/xR5cPyPoL5HVXSphqA/giphy.gif", "https://media.giphy.com/media/kCqhMzivjgI4kFMuhF/giphy.gif",
+      "https://media.giphy.com/media/QO6gybBh0d4LLTNn1d/giphy.gif", "https://media.giphy.com/media/AjhzHRiiTdb20awZoo/giphy.gif", "https://media.giphy.com/media/LCPkk5ouEjrEL0cs8j/giphy.gif",
+      "https://media.giphy.com/media/TqZfKTQnCrNCzhUobt/giphy.gif", "https://media.giphy.com/media/IzXiddo2twMmdmU8Lv/giphy.gif", "https://media.giphy.com/media/vX1C2TejT6OCOz2kLd/giphy.gif"
+    ],
+    kiss: [                               // when she taps "Catch a kiss"
+      "https://media.giphy.com/media/VZJn6HJfcWaxuX5nLg/giphy.gif", "https://media.giphy.com/media/NmtzPY31iMjbOMt84s/giphy.gif", "https://media.giphy.com/media/y52k9qaauF4lgk9wjh/giphy.gif"
+    ],
+    wish: "https://media.giphy.com/media/uv0VSp6Eqlu1nGvkZ0/giphy.gif",       // Wish Well stop
+    home: "https://media.giphy.com/media/m48XvrJkezllfy9ahI/giphy.gif",       // address stop
     final: "https://media.giphy.com/media/oalrDwsiuYFdKq4t21/giphy.gif",
-    sent: "https://media.giphy.com/media/4JNq1qXXOBFoD0fjt2/giphy.gif"
+    sent: "https://media.giphy.com/media/jTlX4B5eoVPmLdu5nR/giphy.gif"        // "hug incoming!"
   },
+
 
   // Shown after each stop. Repeats if you have more stops than lines.
   cheers: [

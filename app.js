@@ -52,30 +52,67 @@
   const stage = $('#stage'), modal = $('#modal'), drawer = $('#drawer'), toastEl = $('#toast');
 
   /* ---------------------------------------------------------------- sound */
-  let ac;
+  // soft, bubbly, music-box-ish sounds made live with Web Audio (no files)
+  let ac, master, echoIn;
+  function audio() {
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = 0.9;
+      const comp = ac.createDynamicsCompressor();
+      master.connect(comp).connect(ac.destination);
+      // a dreamy little echo, like sounds in a fairy-tale room
+      echoIn = ac.createGain(); echoIn.gain.value = 0.22;
+      const d = ac.createDelay(1); d.delayTime.value = 0.19;
+      const fb = ac.createGain(); fb.gain.value = 0.3;
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+      echoIn.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(master);
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function note({ f, to, at = 0, dur = 0.2, vol = 0.1, type = 'sine', bell = 0, echo = true, attack = 0.008 }) {
+    const t = ac.currentTime + at;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.connect(master); if (echo) g.connect(echoIn);
+    const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur * 0.6);
+    o.connect(g); o.start(t); o.stop(t + dur + 0.05);
+    if (bell) {
+      const o2 = ac.createOscillator(), g2 = ac.createGain();
+      o2.type = 'sine'; o2.frequency.setValueAtTime(f * 2.76, t); g2.gain.value = bell;
+      o2.connect(g2).connect(g); o2.start(t); o2.stop(t + dur * 0.5);
+    }
+  }
+  const play = fn => { if (!S.soundOn) return; try { audio(); fn(); } catch (e) { /* no audio, no problem */ } };
+  const PENTA = [1047, 1175, 1319, 1568, 1760, 2093, 2349, 2637];
   function tone(freqs, dur = 0.12, type = 'sine', gap = 0.07, vol = 0.12) {
-    if (!S.soundOn) return;
-    try {
-      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-      if (ac.state === 'suspended') ac.resume();
-      freqs.forEach((f, i) => {
-        const o = ac.createOscillator(), g = ac.createGain();
-        const t = ac.currentTime + i * gap;
-        o.type = type; o.frequency.setValueAtTime(f, t);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        o.connect(g).connect(ac.destination);
-        o.start(t); o.stop(t + dur + 0.03);
-      });
-    } catch (e) { /* no audio, no problem */ }
+    play(() => freqs.forEach((f, i) => note({ f, at: i * gap, dur, vol: vol * 0.8, type, bell: 0.15 })));
   }
   const sfx = {
-    pop: () => tone([620, 930], 0.09, 'sine', 0.045, 0.1),
-    boop: () => tone([440, 300], 0.12, 'sine', 0.07, 0.09),
-    chime: () => tone([784, 988, 1175, 1568], 0.28, 'triangle', 0.085, 0.1),
-    tada: () => tone([523, 659, 784, 1047, 1319, 1568], 0.4, 'triangle', 0.08, 0.11),
-    step: () => tone([260 + Math.random() * 60], 0.05, 'sine', 0, 0.035)
+    // bubbly "bloop" going up
+    pop: () => play(() => { note({ f: 420, to: 980, dur: 0.12, vol: 0.13, echo: false }); note({ f: 1568, at: 0.05, dur: 0.22, vol: 0.035, bell: 0.2 }); }),
+    // soft little boing going down
+    boop: () => play(() => note({ f: 620, to: 260, dur: 0.22, vol: 0.1, echo: false })),
+    // sparkly glockenspiel twinkle
+    chime: () => play(() => [0, 2, 4, 5].forEach((k, i) => note({ f: PENTA[k], at: i * 0.07, dur: 0.65, vol: 0.055, bell: 0.25 }))),
+    // happy little fanfare + glitter
+    tada: () => play(() => {
+      [523, 659, 784, 1047].forEach((f, i) => note({ f, at: i * 0.09, dur: 0.55, vol: 0.065, type: 'triangle', bell: 0.2 }));
+      [0, 2, 4, 6, 7].forEach((k, i) => note({ f: PENTA[k], at: 0.42 + i * 0.05, dur: 0.55, vol: 0.032, bell: 0.3 }));
+    }),
+    // tiny soft footsteps
+    step: () => play(() => note({ f: 200 + Math.random() * 40, to: 130, dur: 0.07, vol: 0.045, echo: false })),
+    // cartoon "talking" blip for speech bubbles
+    blip: () => play(() => { const f = [880, 988, 1175, 1319, 1480][Math.floor(Math.random() * 5)]; note({ f, to: f * 1.12, dur: 0.06, vol: 0.035, type: 'triangle', echo: false, attack: 0.004 }); }),
+    // "mwah!" kiss: a little whistle up + a smack + sparkles
+    mwah: () => play(() => {
+      note({ f: 700, to: 1400, dur: 0.2, vol: 0.05, type: 'triangle', echo: false });
+      note({ f: 260, to: 1300, at: 0.21, dur: 0.06, vol: 0.12, echo: false, attack: 0.003 });
+      [4, 6].forEach((k, i) => note({ f: PENTA[k], at: 0.3 + i * 0.08, dur: 0.55, vol: 0.035, bell: 0.3 }));
+    })
   };
 
   /* ------------------------------------------------------------- confetti */
@@ -124,7 +161,7 @@
     const step = () => {
       if (!el.isConnected) return;
       el.textContent = parts.slice(0, ++i).join('');
-      if (i % 3 === 1 && /\S/.test(parts[i - 1])) tone([1150 + Math.random() * 250], 0.035, 'sine', 0, 0.018);
+      if (i % 3 === 1 && /\S/.test(parts[i - 1])) sfx.blip();
       if (i < parts.length) el._tt = setTimeout(step, /[.,!?…]/.test(parts[i - 1]) ? 160 : 26);
       else el.style.minHeight = '';
     };
@@ -345,7 +382,7 @@
     wishlist: () => `
       <section class="screen wish">
         <div class="level-head">
-          <div class="level-badge">🪄</div>
+          ${GIFS.wish ? `<div class="level-badge gif-badge"><img src="${esc(GIFS.wish)}" alt="" data-fallback="🪄"></div>` : '<div class="level-badge">🪄</div>'}
           <p class="kicker">the magic stop</p>
           <h2 class="title">The Wish Well</h2>
           <p class="sub">Saw something cute <i>anywhere</i>? Amazon, Myntra, Nykaa, Insta, anywhere! Paste the link & toss it in the well ✨</p>
@@ -385,7 +422,7 @@
       return `
       <section class="screen address">
         <div class="level-head">
-          <div class="level-badge">🏡</div>
+          ${GIFS.home ? `<div class="level-badge gif-badge"><img src="${esc(GIFS.home)}" alt="" data-fallback="🏡"></div>` : '<div class="level-badge">🏡</div>'}
           <p class="kicker">last stop</p>
           <h2 class="title">Where do I send the love?</h2>
           <p class="sub">So all your treasures find their way to you 💌</p>
@@ -621,7 +658,7 @@
     if (!S.picks.includes(key)) S.picks.push(key);
     save();
     flyHeart(srcEl); burstAt(srcEl, { particleCount: 30 });
-    sfx.chime(); toast(rand(PICK_LINES)); buzz(18);
+    sfx.chime(); toast(rand(PICK_LINES)); buzz(18); gifPop(GIFS.reactions);
     closeModal();
     refreshAfterChange();
     mascotReact();
@@ -943,11 +980,16 @@
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
   let musicTimer = null, musicGain = null, musicArmed = false;
   function bell(f, t, dur, vol) {
-    const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), g2 = ac.createGain();
-    o.type = 'triangle'; o2.type = 'sine'; o.frequency.value = f; o2.frequency.value = f * 2; g2.gain.value = 0.3;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); o2.connect(g2).connect(g); g.connect(musicGain);
-    o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+    // music-box tine: pure tone + glassy overtones that fade fast
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.connect(musicGain);
+    [[1, 1, 'sine', 1], [2.76, 0.2, 'sine', 0.35], [5.4, 0.05, 'sine', 0.2], [1, 0.22, 'triangle', 1]].forEach(([m, v, type, life]) => {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.type = type; o.frequency.value = f * m;
+      og.gain.setValueAtTime(v, t); og.gain.exponentialRampToValueAtTime(0.0001, t + dur * life);
+      o.connect(og).connect(g); o.start(t); o.stop(t + dur + 0.05);
+    });
   }
   function playLoop() {
     if (!musicGain) return;
@@ -960,9 +1002,8 @@
     musicArmed = true;
     if (!S.musicOn || musicTimer || document.hidden) return;
     try {
-      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-      if (ac.state === 'suspended') ac.resume();
-      musicGain = ac.createGain(); musicGain.gain.value = 0.9; musicGain.connect(ac.destination);
+      audio();
+      musicGain = ac.createGain(); musicGain.gain.value = 0.9; musicGain.connect(master); musicGain.connect(echoIn);
       playLoop();
     } catch (e) { /* no audio */ }
   }
@@ -1019,6 +1060,26 @@
     setTimeout(() => { env.hidden = true; env.innerHTML = ''; env.classList.remove('opening', 'gone'); }, 2600);
   };
 
+
+  // little GIF stickers that pop up on happy moments 💋🤗
+  const gifQueue = {};
+  function gifPop(list) {
+    const arr = (Array.isArray(list) ? list : [list]).filter(Boolean);
+    if (!arr.length) return;
+    const key = arr.join('|');
+    const q = gifQueue[key] = (gifQueue[key] && gifQueue[key].length) ? gifQueue[key] : arr.slice().sort(() => Math.random() - 0.5);
+    const url = q.shift();
+    let el = $('#gifPop');
+    if (!el) { el = document.createElement('div'); el.id = 'gifPop'; el.setAttribute('aria-hidden', 'true'); document.body.appendChild(el); }
+    clearTimeout(el._t);
+    el.innerHTML = `<span class="gif-tape"></span><img src="${esc(url)}" alt="">`;
+    el.style.setProperty('--tilt', (Math.random() * 10 - 5).toFixed(1) + 'deg');
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    el._t = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+  // warm the cache so stickers appear instantly
+  setTimeout(() => [].concat(GIFS.reactions || [], GIFS.kiss || [], GIFS.cheer || []).forEach(u => { const i = new Image(); i.src = u; }), 2500);
+
   // the couple cheers when she picks something
   function mascotReact() {
     const m = $('.mini-mascot .couple'), b = $('.peek-row .bubble');
@@ -1034,7 +1095,7 @@
 
   // catch a kiss 😘
   ACTIONS.kiss = el => {
-    tone([880, 1320, 1760], 0.16, 'sine', 0.06, 0.09); buzz([12, 40, 12]);
+    sfx.mwah(); buzz([12, 40, 12]); gifPop(GIFS.kiss);
     $$('.final svg.couple').forEach(c => { c.classList.add('happy'); clearTimeout(c._h); c._h = setTimeout(() => c.classList.remove('happy'), 1800); });
     toast(rand(['Mwah! 💋', 'Caught it? 😘', 'Kiss delivered 💌', 'Mwah mwah mwah 💕']));
     const m = $('.final .mascot-stage .couple, .final .gif-frame');
