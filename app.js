@@ -34,7 +34,7 @@
   const stepIndex = pred => STEPS.findIndex(pred);
 
   // saved progress
-  const DEFAULT = { step: 0, picks: [], wishes: [], address: {}, soundOn: C.sound !== false, editing: false };
+  const DEFAULT = { step: 0, picks: [], wishes: [], address: {}, soundOn: C.sound !== false, musicOn: C.music !== false, editing: false };
   let S = load();
   function load() {
     try {
@@ -129,8 +129,8 @@
       <ellipse cx="63" cy="80" rx="13" ry="10" fill="#fbe8d8"/>
       <ellipse cx="63" cy="75.5" rx="4.6" ry="3.3" fill="#4a2a35"/>
       <path d="M58 82q5 5 10 0" stroke="#4a2a35" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-      <g class="eyes"><ellipse cx="51" cy="66" rx="3.5" ry="4.3" fill="#3b2230"/><ellipse cx="75" cy="66" rx="3.5" ry="4.3" fill="#3b2230"/>
-        <circle cx="52.2" cy="64.4" r="1.3" fill="#fff"/><circle cx="76.2" cy="64.4" r="1.3" fill="#fff"/></g>
+      <g class="look"><g class="eyes"><ellipse cx="51" cy="66" rx="3.5" ry="4.3" fill="#3b2230"/><ellipse cx="75" cy="66" rx="3.5" ry="4.3" fill="#3b2230"/>
+        <circle cx="52.2" cy="64.4" r="1.3" fill="#fff"/><circle cx="76.2" cy="64.4" r="1.3" fill="#fff"/></g></g>
       <ellipse class="blush" cx="44" cy="79" rx="6" ry="3.6" fill="#ff7fa8" opacity=".55"/>
       <ellipse class="blush" cx="82" cy="79" rx="6" ry="3.6" fill="#ff7fa8" opacity=".55"/>
     </g>
@@ -156,8 +156,8 @@
         <path d="M0 0l-11-8v16zM0 0l11-8v16z" fill="#ff5fa2" stroke="#7a2e55" stroke-width="2.2" stroke-linejoin="round"/>
         <circle r="3.6" fill="#ff5fa2" stroke="#7a2e55" stroke-width="2.2"/>
       </g>
-      <g class="eyes"><ellipse cx="128" cy="70" rx="3.4" ry="4.2" fill="#3b2230"/><ellipse cx="148" cy="70" rx="3.4" ry="4.2" fill="#3b2230"/>
-        <circle cx="129.2" cy="68.4" r="1.3" fill="#fff"/><circle cx="149.2" cy="68.4" r="1.3" fill="#fff"/></g>
+      <g class="look"><g class="eyes"><ellipse cx="128" cy="70" rx="3.4" ry="4.2" fill="#3b2230"/><ellipse cx="148" cy="70" rx="3.4" ry="4.2" fill="#3b2230"/>
+        <circle cx="129.2" cy="68.4" r="1.3" fill="#fff"/><circle cx="149.2" cy="68.4" r="1.3" fill="#fff"/></g></g>
       <ellipse cx="138" cy="77" rx="3" ry="2.2" fill="#ff7fa8"/>
       <path d="M133 81q2.5 3 5 0q2.5 3 5 0" stroke="#4a2a35" stroke-width="2" fill="none" stroke-linecap="round"/>
       <ellipse class="blush" cx="121" cy="80" rx="5.5" ry="3.4" fill="#ff7fa8" opacity=".6"/>
@@ -420,6 +420,8 @@
 
         ${C.finalNote ? `<div class="letter card"><p>${esc(C.finalNote)}</p><p class="sig">— yours, ${esc(ME)} 💌</p></div>` : ''}
 
+        <button class="btn ghost kiss-btn" data-act="kiss">Catch a kiss from ${esc(ME)} 😘</button>
+
         <div class="final-actions">
           <button class="btn primary big wiggle" data-act="send">Send it to ${esc(ME)} 💌</button>
           <button class="btn soft" data-act="copy">📋 Copy everything</button>
@@ -521,6 +523,7 @@
     $('#progressFill').style.width = Math.max(6, pct) + '%';
     updateBox(false);
     $('#soundBtn').textContent = S.soundOn ? '🔊' : '🔇';
+    $('#musicBtn').classList.toggle('off', !S.musicOn);
     AFTER[step.type] && AFTER[step.type](step, scr, dir);
   }
 
@@ -588,6 +591,7 @@
     sfx.chime(); toast(rand(PICK_LINES));
     closeModal();
     refreshAfterChange();
+    mascotReact();
   }
   function removePick(key) {
     S.picks = S.picks.filter(k => k !== key); save();
@@ -896,7 +900,174 @@
     }
   }, { passive: true });
 
+
+  /* ------------------------------------------------- extra cuteness ✨ */
+  // little music box (an original lullaby, made with Web Audio, no files)
+  const MELODY = [[76,1],[79,1],[84,1],[83,1],[81,1],[79,1],[76,2],[77,1],[81,1],[86,1],[84,1],[83,1],[79,3],
+    [76,1],[79,1],[84,1],[88,1],[86,1],[84,1],[81,2],[83,1],[86,1],[79,1],[83,1],[84,4]];
+  const BASS = [48, 45, 41, 43, 48, 41, 43, 48];
+  const BEAT = 0.36;
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  let musicTimer = null, musicGain = null, musicArmed = false;
+  function bell(f, t, dur, vol) {
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), g2 = ac.createGain();
+    o.type = 'triangle'; o2.type = 'sine'; o.frequency.value = f; o2.frequency.value = f * 2; g2.gain.value = 0.3;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); o2.connect(g2).connect(g); g.connect(musicGain);
+    o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+  }
+  function playLoop() {
+    if (!musicGain) return;
+    const t0 = ac.currentTime + 0.08; let t = t0;
+    MELODY.forEach(([m, b]) => { bell(mtof(m), t, Math.max(0.5, b * BEAT * 1.6), 0.05); t += b * BEAT; });
+    BASS.forEach((m, i) => bell(mtof(m), t0 + i * 4 * BEAT, 4 * BEAT * 1.1, 0.03));
+    musicTimer = setTimeout(playLoop, (t - t0) * 1000 - 80);
+  }
+  function startMusic() {
+    musicArmed = true;
+    if (!S.musicOn || musicTimer || document.hidden) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      musicGain = ac.createGain(); musicGain.gain.value = 0.9; musicGain.connect(ac.destination);
+      playLoop();
+    } catch (e) { /* no audio */ }
+  }
+  function stopMusic() {
+    clearTimeout(musicTimer); musicTimer = null;
+    if (musicGain) { const g = musicGain; musicGain = null; try { g.gain.setTargetAtTime(0.0001, ac.currentTime, 0.15); setTimeout(() => g.disconnect(), 800); } catch (e) { /* */ } }
+  }
+  document.addEventListener('pointerdown', () => { if (!musicArmed && !$('#envelope:not([hidden])')) startMusic(); }, { passive: true });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopMusic(); else if (musicArmed) startMusic(); });
+  ACTIONS.music = () => {
+    S.musicOn = !S.musicOn; save();
+    $('#musicBtn').classList.toggle('off', !S.musicOn);
+    if (S.musicOn) startMusic(); else stopMusic();
+    toast(S.musicOn ? 'Music on 🎶' : 'Shh… music off 🤫');
+  };
+
+  // the love letter she opens first 💌
+  function showEnvelope() {
+    const env = $('#envelope');
+    env.innerHTML = `
+      <div class="env-wrap">
+        <p class="kicker">psst… ${esc(HER)}</p>
+        <h2 class="title">You’ve got a love letter 💌</h2>
+        <div class="env">
+          <svg class="env-svg" viewBox="0 -110 300 310" aria-hidden="true">
+            <rect class="e-back" x="4" y="40" width="292" height="156" rx="16" fill="#ff8fbf" stroke="#7a2e55" stroke-width="4"/>
+            <g class="e-letter">
+              <rect x="26" y="48" width="248" height="140" rx="12" fill="#fffdf8" stroke="#7a2e55" stroke-width="3.5"/>
+              <text x="150" y="86" text-anchor="middle" class="e-to">For my ${esc(HER)}</text>
+              <text x="150" y="118" text-anchor="middle" font-size="26">💗</text>
+            </g>
+            <path class="e-front" d="M4 74 L150 142 L296 74 V180 a16 16 0 0 1 -16 16 H20 a16 16 0 0 1 -16 -16 Z" fill="#ffc2da" stroke="#7a2e55" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M24 182 h30 M246 182 h30" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+            <path class="e-flap" d="M4 56 a16 16 0 0 1 16 -16 H280 a16 16 0 0 1 16 16 L150 136 Z" fill="#ffadd0" stroke="#7a2e55" stroke-width="4" stroke-linejoin="round"/>
+          </svg>
+          <button class="env-seal" data-act="openEnvelope" aria-label="Open the love letter">💗</button>
+        </div>
+        <p class="sub">tap the heart to open it</p>
+      </div>`;
+    env.hidden = false;
+  }
+  ACTIONS.openEnvelope = () => {
+    const env = $('#envelope');
+    if (env.classList.contains('opening')) return;
+    env.classList.add('opening');
+    sfx.chime(); startMusic();
+    const flap = $('.e-flap', env), letter = $('.e-letter', env);
+    setTimeout(() => flap.parentNode.insertBefore(flap, letter), 280);
+    setTimeout(() => { sfx.tada(); bigCelebration(); }, 950);
+    setTimeout(() => env.classList.add('gone'), 1900);
+    setTimeout(() => { env.hidden = true; env.innerHTML = ''; env.classList.remove('opening', 'gone'); }, 2600);
+  };
+
+  // the couple cheers when she picks something
+  function mascotReact() {
+    const m = $('.mini-mascot .couple'), b = $('.peek-row .bubble');
+    if (!m) return;
+    m.classList.remove('idle'); m.classList.add('dance', 'happy');
+    if (b) {
+      b.textContent = rand(['Yaaay!! 🥳', 'Eeee good pick! 🙈', '*happy bunny noises* 🐰💕', 'Ooh that’s a cute one 😍', 'Another one?? 😍', 'We approve!! 💯']);
+      b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing');
+    }
+    clearTimeout(mascotReact.t);
+    mascotReact.t = setTimeout(() => { m.classList.remove('dance', 'happy'); m.classList.add('idle'); }, 1700);
+  }
+
+  // catch a kiss 😘
+  ACTIONS.kiss = el => {
+    tone([880, 1320, 1760], 0.16, 'sine', 0.06, 0.09);
+    toast(rand(['Mwah! 💋', 'Caught it? 😘', 'Kiss delivered 💌', 'Mwah mwah mwah 💕']));
+    const m = $('.final .mascot-stage .couple, .final .gif-frame');
+    if (m) { m.classList.remove('boing'); void m.getBoundingClientRect(); m.classList.add('boing'); }
+    if (reduceMotion) return;
+    const r = el.getBoundingClientRect();
+    for (let k = 0; k < 16; k++) {
+      const h = document.createElement('div');
+      h.className = 'kiss'; h.textContent = rand(['💋', '😘', '💗', '💕', '💋']);
+      document.body.appendChild(h);
+      const sx = r.left + r.width / 2, sy = r.top;
+      const ex = Math.random() * innerWidth, ey = -60 - Math.random() * 100;
+      h.animate([
+        { transform: `translate(${sx}px, ${sy}px) scale(.3) rotate(0deg)`, opacity: 1 },
+        { transform: `translate(${(sx + ex) / 2 + (Math.random() - .5) * 120}px, ${sy * 0.5}px) scale(1.5) rotate(${(Math.random() - .5) * 60}deg)`, opacity: 1, offset: .5 },
+        { transform: `translate(${ex}px, ${ey}px) scale(.8) rotate(${(Math.random() - .5) * 90}deg)`, opacity: 0 }
+      ], { duration: 1400 + Math.random() * 900, delay: k * 50, easing: 'cubic-bezier(.3,.1,.3,1)', fill: 'forwards' }).onfinish = () => h.remove();
+    }
+  };
+
+  // squishy jelly taps
+  document.addEventListener('pointerdown', e => {
+    if (reduceMotion) return;
+    const t = e.target.closest('.float-item, .btn, .icon-btn, .box-btn, .x-btn, .env-seal');
+    if (!t) return;
+    t.classList.remove('squish'); void t.offsetWidth; t.classList.add('squish');
+  }, { passive: true });
+  document.addEventListener('animationend', e => { if (e.animationName === 'squish') e.target.classList.remove('squish'); });
+
+  // sparkle trail + the couple's eyes follow her finger
+  let lastTrail = 0, lookRaf = 0, lookX = innerWidth / 2, lookY = innerHeight / 2;
+  function updateLook() {
+    lookRaf = 0;
+    $$('svg.couple').forEach(svg => {
+      if (svg.closest('#walker')) return;
+      const r = svg.getBoundingClientRect();
+      if (!r.width || r.bottom < 0 || r.top > innerHeight) return;
+      const dx = lookX - (r.left + r.width / 2), dy = lookY - (r.top + r.height * 0.4);
+      const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 180);
+      svg.querySelectorAll('.look').forEach(g => { g.style.transform = `translate(${(dx / d * 3.2 * k).toFixed(2)}px, ${(dy / d * 2.6 * k).toFixed(2)}px)`; });
+    });
+  }
+  document.addEventListener('pointermove', e => {
+    lookX = e.clientX; lookY = e.clientY;
+    if (!lookRaf) lookRaf = requestAnimationFrame(updateLook);
+    if (reduceMotion) return;
+    const now = performance.now();
+    if (now - lastTrail < 45) return;
+    lastTrail = now;
+    const s = document.createElement('span');
+    s.className = 'trail'; s.textContent = Math.random() < 0.55 ? '✦' : '♥';
+    s.style.cssText = `left:${e.clientX}px;top:${e.clientY}px;color:${rand(['#ff5fa2', '#ff9cc4', '#ffc94d', '#ffffff', '#b98cff'])};font-size:${8 + Math.random() * 9}px`;
+    document.body.appendChild(s); setTimeout(() => s.remove(), 850);
+  }, { passive: true });
+
+  // cherry-blossom petals drifting down
+  (function petals() {
+    if (reduceMotion) return;
+    const box = $('#floaties'), n = innerWidth < 600 ? 8 : 14;
+    for (let k = 0; k < n; k++) {
+      const p = document.createElement('i');
+      p.className = 'petal';
+      p.style.cssText = `left:${(Math.random() * 100).toFixed(1)}%;--s:${(0.6 + Math.random() * 0.8).toFixed(2)};` +
+        `animation-duration:${(10 + Math.random() * 10).toFixed(1)}s,${(2 + Math.random() * 2.5).toFixed(1)}s;animation-delay:${(-Math.random() * 20).toFixed(1)}s,0s`;
+      box.appendChild(p);
+    }
+  })();
+
   /* ----------------------------------------------------------------- go! */
   try { history.replaceState({ lb: S.step }, ''); } catch (e) { /* */ }
   render(0);
+  if (S.step === 0) showEnvelope();
 })();

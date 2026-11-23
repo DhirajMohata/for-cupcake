@@ -18,6 +18,7 @@ window.LOVE_CONFIG = {
   whatsappNumber: "",
 
   sound: true,                            // cute pops & chimes (she can mute)
+  music: true,                            // soft music-box tune (starts on her first tap)
 
   introLine: "I planned a little adventure just for you. Hold my hand? 🫶",
 

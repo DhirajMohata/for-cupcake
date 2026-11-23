@@ -550,3 +550,76 @@ body[data-screen="intro"] .box-btn, body[data-screen="rules"] .box-btn { opacity
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ============================================================
+   Extra cuteness ✨
+   ============================================================ */
+/* love-letter envelope */
+.env-overlay {
+  position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px;
+  background: linear-gradient(180deg, #ffd3e6 0%, #ffe7f1 50%, #fff4f8 100%);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.env-overlay[hidden] { display: none; }
+.env-overlay::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(#ffbdd6 2.2px, transparent 2.8px); background-size: 30px 30px; opacity: .6;
+}
+.env-overlay.gone { opacity: 0; transform: scale(1.08); pointer-events: none; }
+.env-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.env { position: relative; width: min(320px, 84vw); margin-top: 6px; }
+.env-svg { width: 100%; height: auto; display: block; overflow: visible; animation: envWiggle 2.6s ease-in-out infinite; transform-origin: 50% 80%; }
+.opening .env-svg { animation: none; }
+.e-flap { transform-box: fill-box; transform-origin: 50% 0%; transition: transform .55s cubic-bezier(.5, 0, .3, 1); }
+.opening .e-flap { transform: scaleY(-1); }
+.e-letter { transition: transform .9s var(--bounce) .45s; }
+.opening .e-letter { transform: translateY(-100px); }
+.e-to { font-family: var(--font-hand); font-size: 30px; font-weight: 700; fill: var(--pink-600); }
+.env-seal {
+  position: absolute; left: 50%; top: 79.5%; width: 66px; height: 66px; margin: -33px 0 0 -33px;
+  border-radius: 50%; border: var(--outline); background: radial-gradient(circle at 35% 30%, #ff9cc4, var(--pink-600));
+  box-shadow: 0 4px 0 var(--ink), 0 0 0 8px rgba(255, 95, 162, .18); font-size: 28px; padding: 0;
+  animation: sealPulse 1.4s ease-in-out infinite; transition: transform .35s var(--bounce), opacity .3s;
+}
+.opening .env-seal { transform: scale(0) rotate(120deg); opacity: 0; animation: none; }
+
+/* music button off state */
+.icon-btn.off { filter: grayscale(1); opacity: .55; }
+
+/* happy couple */
+.couple .blush { transition: opacity .3s; }
+.couple.happy .blush { opacity: .95; }
+.couple .look { transition: transform .12s ease-out; }
+.boing { animation: boing .5s var(--bounce); }
+
+/* catch a kiss */
+.kiss-btn { width: 100%; max-width: 420px; }
+.kiss { position: fixed; left: 0; top: 0; z-index: 75; font-size: 30px; pointer-events: none; margin: -15px 0 0 -15px; }
+
+/* squishy jelly */
+.btn.squish, .icon-btn.squish, .box-btn.squish, .x-btn.squish { animation: squish .45s ease; }
+.float-item.squish { animation: floaty 4.2s ease-in-out var(--d, 0s) infinite, squish .45s ease; }
+.env-seal.squish { animation: squish .45s ease; }
+
+/* sparkle trail */
+.trail {
+  position: fixed; z-index: 85; pointer-events: none; margin: -7px 0 0 -5px; line-height: 1;
+  text-shadow: 0 0 4px #fff, 0 0 1px var(--ink); animation: trailFall .85s ease-out forwards;
+}
+
+/* falling petals */
+#floaties .petal {
+  position: absolute; top: -30px; width: 14px; height: 10px; scale: var(--s, 1);
+  background: linear-gradient(135deg, #ffd3e4, #ff8fbf); border-radius: 80% 0 80% 0; opacity: .85;
+  box-shadow: inset 0 0 0 1px rgba(122, 46, 85, .12);
+  animation-name: petalFall, petalSpin; animation-timing-function: linear, ease-in-out;
+  animation-iteration-count: infinite, infinite; animation-direction: normal, alternate;
+}
+
+@keyframes envWiggle { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-6px); } }
+@keyframes sealPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes boing { 0% { transform: scale(1); } 35% { transform: scale(1.15) rotate(-3deg); } 70% { transform: scale(.95) rotate(2deg); } 100% { transform: scale(1); } }
+@keyframes squish { 0% { scale: 1 1; } 30% { scale: 1.12 .86; } 55% { scale: .94 1.08; } 80% { scale: 1.03 .98; } 100% { scale: 1 1; } }
+@keyframes trailFall { to { transform: translateY(20px) scale(.3) rotate(120deg); opacity: 0; } }
+@keyframes petalFall { from { translate: 0 0; } to { translate: 70px 112vh; } }
+@keyframes petalSpin { from { rotate: -40deg; } to { rotate: 220deg; } }
