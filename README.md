@@ -15,7 +15,7 @@ fills in her address, and sends the whole Love Box to your WhatsApp.
 
 ## Adding your items (config.js)
 ```js
-{ name: "Dainty Heart Necklace", emoji: "💗", price: "₹899",
+{ name: "Dainty Heart Necklace", emoji: "💗",
   image: "images/necklace.jpg",          // or a full https:// image link
   link: "https://amzn.in/d/xxxx",        // product page; opens the app on her phone
   note: "Closest thing to wearing my heart" }

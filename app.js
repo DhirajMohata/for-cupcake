@@ -42,6 +42,7 @@
       const s = { ...DEFAULT, ...raw };
       s.picks = (s.picks || []).filter(k => itemByKey(k));
       s.wishes = Array.isArray(s.wishes) ? s.wishes : [];
+      s.wishes.forEach(w => { if (!(Number.isInteger(w.at) && w.at >= 0 && w.at < LEVELS.length)) delete w.at; });
       s.address = s.address || {};
       if (!(s.step >= 0 && s.step < STEPS.length)) s.step = 0;
       return s;
@@ -351,7 +352,7 @@
           <h2 class="title">${esc(lv.title)}</h2>
           ${lv.intro ? `<p class="sub">${esc(lv.intro)}</p>` : ''}
         </div>
-        <div class="love-rule">💕 Only add it if you <b>love</b> it. Otherwise skip, you can paste your own picks at the end!</div>
+        <div class="love-rule">💕 Only add it if you <b>love</b> it. Not feeling any? Skip it, you can add what you like later!</div>
         <div class="float-field">
           ${lv.items.map((it, k) => `
             <button class="float-item ${S.picks.includes(it.key) ? 'picked' : ''}" data-act="peek" data-key="${esc(it.key)}"
@@ -359,9 +360,18 @@
               <span class="tape"></span>
               <span class="ph">${imgTag(it)}</span>
               <span class="name">${esc(it.name)}</span>
-              ${it.price ? `<span class="price">${esc(it.price)}</span>` : ''}
               <span class="pick-badge" aria-label="in your love box">💖</span>
             </button>`).join('')}
+        </div>
+        <div class="stop-link card">
+          <p class="stop-link-title">Saw something else you love? 🔗</p>
+          <p class="tiny">Paste its link from any app & it goes into your box with ${esc(lv.title)}.</p>
+          <div class="stop-link-row">
+            <input id="stopText" type="url" inputmode="url" autocomplete="off" placeholder="Paste a link here…">
+            <button class="btn primary" data-act="stopAdd" data-i="${step.i}">Add 💕</button>
+          </div>
+          <p class="wish-err" id="stopErr" hidden>Hmm, that doesn’t look like a link. Try copying it again 🥺</p>
+          <ul class="wish-list stop-links" id="stopLinks" hidden></ul>
         </div>
         <div class="peek-row">
           <div class="mini-mascot">${couple('idle')}</div>
@@ -372,7 +382,7 @@
     },
 
     cheer: step => {
-      const n = LEVELS[step.i].items.filter(it => S.picks.includes(it.key)).length;
+      const n = LEVELS[step.i].items.filter(it => S.picks.includes(it.key)).length + linksAt(step.i).length;
       const total = S.picks.length + S.wishes.length;
       const cheerGifs = GIFS.cheer || [];
       return `
@@ -454,12 +464,13 @@
       const picks = S.picks.map(itemByKey).filter(Boolean);
       const a = S.address;
       const hasAddr = a.name && a.line1 && a.city && a.pincode;
-      const byLevel = LEVELS.map((lv, li) => ({ lv, li, its: picks.filter(p => p.li === li) })).filter(g => g.its.length);
+      const byLevel = LEVELS.map((lv, li) => ({ lv, li, its: picks.filter(p => p.li === li), links: withIdx(w => w.at === li) })).filter(g => g.its.length || g.links.length);
+      const well = withIdx(w => w.at === undefined);
       return `
       <section class="screen final">
         ${GIFS.final ? gifOr(GIFS.final, 'dance') : `<div class="mascot-stage">${couple('dance', 'big')}</div>`}
         <h1 class="big-title">${wavy('Your Love Box')}</h1>
-        <p class="sub">${plural(picks.length, 'treasure')} + ${S.wishes.length} ${S.wishes.length === 1 ? 'wish' : 'wishes'} 💝</p>
+        <p class="sub">${plural(picks.length + S.wishes.length, 'thing')} you love 💝</p>
 
         <div class="receipt card">
           <div class="receipt-top"><span>💗</span> ${esc(HER)}’s Love Box <span>💗</span></div>
@@ -469,16 +480,13 @@
               <p class="r-level">${g.lv.emoji || '🎁'} ${esc(g.lv.title)}</p>
               <ul class="r-list">${g.its.map(it => `
                 <li><span class="r-thumb">${imgTag(it)}</span>
-                  <span class="r-name">${safeUrl(it.link) ? `<a href="${esc(safeUrl(it.link))}" target="_blank" rel="noopener">${esc(it.name)}</a>` : esc(it.name)}${it.price ? ` <small>${esc(it.price)}</small>` : ''}</span>
-                  <button class="x-btn" data-act="remove" data-key="${esc(it.key)}" aria-label="Remove ${esc(it.name)}">✕</button></li>`).join('')}
+                  <span class="r-name">${safeUrl(it.link) ? `<a href="${esc(safeUrl(it.link))}" target="_blank" rel="noopener">${esc(it.name)}</a>` : esc(it.name)}</span>
+                  <button class="x-btn" data-act="remove" data-key="${esc(it.key)}" aria-label="Remove ${esc(it.name)}">✕</button></li>`).join('')}${g.links.map(linkLi).join('')}
               </ul>`).join('') : '<p class="r-empty">Nothing picked on the way, and that’s okay 💕</p>'}
           </div>
           <div class="r-sec">
             <div class="r-head"><h3>From the Wish Well</h3><button class="link-btn" data-act="jump" data-to="wishlist">edit</button></div>
-            ${S.wishes.length ? `<ul class="r-list">${S.wishes.map((w, i) => `
-              <li><span class="r-thumb"><span class="emoji-tile">${storeOf(w.url).icon}</span></span>
-                <span class="r-name"><a href="${esc(w.url)}" target="_blank" rel="noopener">${esc(storeOf(w.url).name)}</a>${w.note ? `<small>📝 ${esc(w.note)}</small>` : ''}</span>
-                <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove wish">✕</button></li>`).join('')}</ul>`
+            ${well.length ? `<ul class="r-list">${well.map(linkLi).join('')}</ul>`
               : '<p class="r-empty">No wishes tossed in. You can still go back and add some 🪄</p>'}
           </div>
           <div class="r-sec">
@@ -515,7 +523,7 @@
   }
   function nextLabelForLevel(i) {
     if (S.editing) return 'Save & back to my box 💝';
-    const n = LEVELS[i].items.filter(it => S.picks.includes(it.key)).length;
+    const n = LEVELS[i].items.filter(it => S.picks.includes(it.key)).length + linksAt(i).length;
     return n ? 'Next stop →' : 'Skip this stop →';
   }
 
@@ -601,6 +609,7 @@
     $('#soundBtn').textContent = S.soundOn ? '🔊' : '🔇';
     $('#musicBtn').classList.toggle('off', !S.musicOn);
     AFTER[step.type] && AFTER[step.type](step, scr, dir);
+    if (step.type === 'level') renderStopLinks();
     $$('[data-type]', scr).forEach(el => typeInto(el, el.textContent, +el.dataset.type || 0));
   }
 
@@ -655,6 +664,7 @@
     if (t === 'level') {
       $$('.float-item').forEach(el => el.classList.toggle('picked', S.picks.includes(el.dataset.key)));
       const nb = $('#nextBtn'); if (nb) nb.textContent = nextLabelForLevel(STEPS[S.step].i);
+      renderStopLinks();
     }
     if (t === 'wishlist') renderWishList();
     if (t === 'final') render(0);
@@ -703,7 +713,6 @@
         <button class="close-x" data-act="closeModal" aria-label="Close">✕</button>
         <div class="modal-img">${imgTag(it)}${picked ? '<span class="pick-badge on">💖</span>' : ''}</div>
         <h3>${esc(it.name)}</h3>
-        ${it.price ? `<p class="price-tag">${esc(it.price)}</p>` : ''}
         ${it.note ? `<p class="his-note">“${esc(it.note)}”<span>— ${esc(ME)}</span></p>` : ''}
         ${link ? `<a class="btn ghost open-link" href="${esc(link)}" target="_blank" rel="noopener">Open &amp; see it 🛍️</a>` : ''}
         <div class="modal-actions">
@@ -728,8 +737,8 @@
         ${picks.length ? `<h4>Picked on the way</h4><ul class="r-list">${picks.map(it => `
           <li><span class="r-thumb">${imgTag(it)}</span><span class="r-name">${esc(it.name)}<small>${esc(it.levelTitle)}</small></span>
           <button class="x-btn" data-act="remove" data-key="${esc(it.key)}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : ''}
-        ${S.wishes.length ? `<h4>From the Wish Well</h4><ul class="r-list">${S.wishes.map((w, i) => `
-          <li><span class="r-thumb"><span class="emoji-tile">${storeOf(w.url).icon}</span></span><span class="r-name">${esc(storeOf(w.url).name)}${w.note ? `<small>📝 ${esc(w.note)}</small>` : ''}</span>
+        ${S.wishes.length ? `<h4>Links you added</h4><ul class="r-list">${S.wishes.map((w, i) => `
+          <li><span class="r-thumb"><span class="emoji-tile">${storeOf(w.url).icon}</span></span><span class="r-name">${esc(storeOf(w.url).name)}<small>${w.at !== undefined ? esc(LEVELS[w.at].title) : 'Wish Well'}${w.note ? ` · 📝 ${esc(w.note)}` : ''}</small></span>
           <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : ''}
         <p class="tiny">Remove anything you’re not in love with anymore 💕</p>
       </div>`;
@@ -760,37 +769,68 @@
     (rest.match(/\b(?:[a-z0-9-]+\.)+(?:com|in|co|net|org|shop|store|me|io|app|ly|gl|it|page)\b(?:\/[^\s<>"']*)?/gi) || []).forEach(u => found.push('https://' + u));
     return [...new Set(found.map(u => u.replace(/[),.;!]+$/, '')))].filter(u => { try { new URL(u); return true; } catch (e) { return false; } });
   }
-  function addWishes(text, note) {
+  const withIdx = pred => S.wishes.map((w, i) => ({ w, i })).filter(x => pred(x.w));
+  const linksAt = li => S.wishes.filter(w => w.at === li);
+  const linkLi = ({ w, i }) => `
+    <li><span class="r-thumb"><span class="emoji-tile">${storeOf(w.url).icon}</span></span>
+      <span class="r-name"><a href="${esc(w.url)}" target="_blank" rel="noopener">${esc(storeOf(w.url).name)}</a>${w.note ? `<small>📝 ${esc(w.note)}</small>` : ''}</span>
+      <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove link">✕</button></li>`;
+
+  // at = stop index when she pastes a link inside a stop; undefined for the Wish Well
+  function addWishes(text, note, at) {
+    const inStop = at !== undefined;
+    const box = $(inStop ? '.stop-link' : '.wish-input'), err = $(inStop ? '#stopErr' : '#wishErr');
     const urls = extractUrls(text);
-    const err = $('#wishErr');
-    if (!urls.length) { if (err) err.hidden = false; $('.wish-input')?.classList.add('shake'); setTimeout(() => $('.wish-input')?.classList.remove('shake'), 500); sfx.boop(); return; }
+    if (!urls.length) { if (err) err.hidden = false; box?.classList.add('shake'); setTimeout(() => box?.classList.remove('shake'), 500); sfx.boop(); return; }
     if (err) err.hidden = true;
     let added = 0;
-    urls.forEach(u => { if (!S.wishes.some(w => w.url === u)) { S.wishes.push({ url: u, note: urls.length === 1 ? (note || '') : '' }); added++; } });
+    urls.forEach(u => {
+      if (S.wishes.some(w => w.url === u)) return;
+      const w = { url: u, note: urls.length === 1 ? (note || '') : '' };
+      if (inStop) w.at = at;
+      S.wishes.push(w); added++;
+    });
     save();
-    $('#wishText').value = ''; $('#wishNote').value = '';
-    const well = $('.well');
-    if (well) { well.classList.remove('splash'); void well.offsetWidth; well.classList.add('splash'); }
-    flyHeart($('.well-svg')); burstAt($('.well-svg'), { particleCount: 34 });
+    if (inStop) {
+      $('#stopText').value = '';
+      flyHeart(box); burstAt(box, { particleCount: 30 });
+    } else {
+      $('#wishText').value = ''; $('#wishNote').value = '';
+      const well = $('.well');
+      if (well) { well.classList.remove('splash'); void well.offsetWidth; well.classList.add('splash'); }
+      flyHeart($('.well-svg')); burstAt($('.well-svg'), { particleCount: 34 });
+    }
     sfx.chime();
-    toast(added ? (added > 1 ? `${added} wishes tossed in! 🪄` : rand(['Wish granted… probably 😉', 'Into the well it goes! 🪄', 'Ooh what is it?? 👀'])) : 'Already in the well, silly 😄');
+    toast(!added ? 'Already in your box, silly 😄'
+      : added > 1 ? `${added} links added! 💕`
+      : inStop ? rand(['Ooh good find! 😍', 'Added with love 💖', 'Into your box it goes 🎀'])
+      : rand(['Wish granted… probably 😉', 'Into the well it goes! 🪄', 'Ooh what is it?? 👀']));
     refreshAfterChange();
   }
-  function renderWishList() {
-    const ul = $('#wishList'); if (!ul) return;
-    ul.innerHTML = S.wishes.length ? S.wishes.map((w, i) => {
-      const st = storeOf(w.url);
-      return `<li class="wish-item" style="--in:${(i * 0.05).toFixed(2)}s">
+  const wishLi = ({ w, i }, k) => {
+    const st = storeOf(w.url);
+    return `<li class="wish-item" style="--in:${(k * 0.05).toFixed(2)}s">
         <span class="wish-ico">${st.icon}</span>
         <div class="wish-body">
           <a href="${esc(w.url)}" target="_blank" rel="noopener"><b>${esc(st.name)}</b> <span>${esc(w.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 42))}${w.url.length > 50 ? '…' : ''}</span></a>
           <input class="wish-note-edit" data-wishnote="${i}" value="${esc(w.note || '')}" maxlength="140" placeholder="add a note (size, colour…)">
         </div>
-        <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove wish">✕</button>
+        <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove link">✕</button>
       </li>`;
-    }).join('') : `<li class="wish-empty">Your well is waiting for wishes ✨<br><small>No wishes? Totally okay, just tap next!</small></li>`;
+  };
+  function renderWishList() {
+    const ul = $('#wishList'); if (!ul) return;
+    const list = withIdx(w => w.at === undefined);
+    ul.innerHTML = list.length ? list.map(wishLi).join('')
+      : `<li class="wish-empty">Your well is waiting for wishes ✨<br><small>No wishes? Totally okay, just tap next!</small></li>`;
     const nb = $('#nextBtn');
-    if (nb && !S.editing) nb.textContent = S.wishes.length ? 'Next →' : 'Skip →';
+    if (nb && !S.editing) nb.textContent = list.length ? 'Next →' : 'Skip →';
+  }
+  function renderStopLinks() {
+    const ul = $('#stopLinks'), st = STEPS[S.step]; if (!ul || st.type !== 'level') return;
+    const list = withIdx(w => w.at === st.i);
+    ul.innerHTML = list.map(wishLi).join('');
+    ul.hidden = !list.length;
   }
 
   /* -------------------------------------------------------------- address */
@@ -830,17 +870,20 @@
   function buildMessage() {
     const out = [`💝 ${HER}'s Love Box 💝`, ''];
     const picks = S.picks.map(itemByKey).filter(Boolean);
-    if (picks.length) {
-      out.push('✨ Picked on our adventure:');
-      picks.forEach((it, i) => {
-        out.push(`${i + 1}. ${it.name}${it.price ? ` (${it.price})` : ''}`);
-        if (safeUrl(it.link)) out.push(`   ${safeUrl(it.link)}`);
-      });
+    const linkLines = (w, n) => { out.push(`${n}. ${w.url}`); if (w.note) out.push(`   📝 ${w.note}`); };
+    LEVELS.forEach((lv, li) => {
+      const its = picks.filter(p => p.li === li), links = linksAt(li);
+      if (!its.length && !links.length) return;
+      out.push(`${lv.emoji || '🎁'} ${lv.title}:`);
+      let n = 0;
+      its.forEach(it => { out.push(`${++n}. ${it.name}`); if (safeUrl(it.link)) out.push(`   ${safeUrl(it.link)}`); });
+      links.forEach(w => linkLines(w, ++n));
       out.push('');
-    }
-    if (S.wishes.length) {
+    });
+    const well = S.wishes.filter(w => w.at === undefined);
+    if (well.length) {
       out.push('🪄 From my Wish Well:');
-      S.wishes.forEach((w, i) => { out.push(`${i + 1}. ${w.url}`); if (w.note) out.push(`   📝 ${w.note}`); });
+      well.forEach((w, i) => linkLines(w, i + 1));
       out.push('');
     }
     if (!picks.length && !S.wishes.length) out.push('(Just you is enough 🥹)', '');
@@ -911,8 +954,9 @@
       try { const t = await navigator.clipboard.readText(); if (t) { $('#wishText').value = t; addWishes(t, $('#wishNote').value.trim()); } }
       catch (e) { toast('Long-press the box & tap Paste 📋'); $('#wishText').focus(); }
     },
-    wishRemove: el => { S.wishes.splice(+el.dataset.i, 1); save(); sfx.boop(); toast('Poof! Wish removed 💨'); refreshAfterChange(); },
+    wishRemove: el => { S.wishes.splice(+el.dataset.i, 1); save(); sfx.boop(); toast('Poof! Removed 💨'); refreshAfterChange(); },
     wishNext: () => forward(),
+    stopAdd: el => addWishes($('#stopText').value, '', +el.dataset.i),
     addrNext: () => { if (validateAddress()) forward(); },
     jump: el => {
       const to = el.dataset.to;
@@ -942,6 +986,7 @@
     if (e.key === 'Escape') { if (modal.classList.contains('open')) closeModal(); else if (drawer.classList.contains('open')) closeDrawer(); }
     if (e.key === 'Enter' && e.target.id === 'wishText' && !e.shiftKey) { e.preventDefault(); ACTIONS.wishAdd(); }
     if (e.key === 'Enter' && e.target.id === 'wishNote') { e.preventDefault(); ACTIONS.wishAdd(); }
+    if (e.key === 'Enter' && e.target.id === 'stopText') { e.preventDefault(); $('[data-act="stopAdd"]')?.click(); }
   });
   window.addEventListener('popstate', () => {
     if (modal.classList.contains('open')) closeModal();

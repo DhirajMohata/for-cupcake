@@ -3,7 +3,7 @@
    Everything she sees comes from here: names, stops, items, GIFs, notes.
    - image: a link to a picture OR a file you drop in the /images folder
             (e.g. "images/hoodie.jpg"). Leave "" to show the cute emoji tile.
-   - link:  the product link (Amazon / Myntra / Nykaa ...). On her phone it
+   - link:  the product link (Savana / Amazon / Myntra ...). On her phone it
             opens straight in the shopping app if she has it installed.
    - note:  a tiny message from you shown when she taps the item.
    ===================================================================== */
@@ -70,48 +70,95 @@ window.LOVE_CONFIG = {
   // The stops on the map. Add / remove / rename freely.
   levels: [
     {
-      id: "fits",
-      title: "Cozy & Cute Fits",
-      emoji: "👗",
-      intro: "Comfy, cute, and made for cuddles. See anything you love?",
+      id: "tops",
+      title: "Cute Tops",
+      emoji: "👚",
+      intro: "Soft knits, a little lace and one cosy jacket. Tap anything that makes you smile.",
       items: [
-        { name: "Oversized Pastel Hoodie", emoji: "🧥", price: "", image: "", link: "https://www.amazon.in/s?k=oversized+pastel+hoodie+women", note: "So I can steal it back sometimes 😌" },
-        { name: "Strawberry Pyjama Set",  emoji: "🍓", price: "", image: "", link: "https://www.amazon.in/s?k=strawberry+pyjama+set+women", note: "Sleepy strawberry girl era" },
-        { name: "Scrunchie Rainbow Pack",  emoji: "🎀", price: "", image: "", link: "https://www.amazon.in/s?k=silk+scrunchies+pack", note: "" },
-        { name: "Fluffy Bunny Slippers",   emoji: "🐰", price: "", image: "", link: "https://www.amazon.in/s?k=bunny+slippers+women", note: "Tiny bunny for my bunny" }
+        { id: "pink-bow-pullover", name: "Pink Bow Pullover", emoji: "🎀",
+          image: "https://img101.mfrcdn.com/goods-pic/52f16d934e884a5799e1c0c5a9535454_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/db/details/2037532?ub_cl=in_en-IN&skcPGs=335010-442489&vid=122",
+          note: "A bow on a pink sweater. It was made for you 🎀" },
+        { id: "lace-cami", name: "Lace Cami Top", emoji: "🤍",
+          image: "https://img101.mfrcdn.com/goods-pic/953baea7963949f68b0441cee597d098_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/1745912?ub_cl=in_en-IN&vid=2&skcPGs=287976-386375",
+          note: "Soft and dainty, just like you" },
+        { id: "flower-pullover", name: "Little Flowers Pullover", emoji: "🌼",
+          image: "https://img101.mfrcdn.com/goods-pic/4e5db30e3947455bb715c8fb61fea8e9_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/db/details/2332002?ub_cl=in_en-IN&skcPGs=380375-485599&vid=19",
+          note: "Tiny flowers for my flower 🌼" },
+        { id: "cream-pullover", name: "Cream Knit Pullover", emoji: "🧶",
+          image: "https://img101.mfrcdn.com/goods-pic/aab641ac6b904d0c9d1b1c098a972539_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/db/details/2045542?ub_cl=in_en-IN&skcPGs=336480-437291%2C336481-441055&vid=308",
+          note: "Cosy enough for coffee dates ☕" },
+        { id: "cropped-jacket", name: "Cosy Cropped Jacket", emoji: "🧥",
+          image: "https://img101.mfrcdn.com/goods-pic/a96beb599738480baf3e41f962e2e4db_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/db/details/1945642?ub_cl=in_en-IN&skcPGs=319740-420231&vid=308",
+          note: "For when I'm not there to keep you warm" }
       ]
     },
     {
-      id: "sparkle",
-      title: "Sparkle & Shine",
-      emoji: "💍",
-      intro: "A little shiny something for the shiniest girl.",
+      id: "bottoms",
+      title: "Comfy Bottoms",
+      emoji: "👖",
+      intro: "Wide legs and pretty embroidery. Pick the ones that feel like you.",
       items: [
-        { name: "Dainty Heart Necklace", emoji: "💗", price: "", image: "", link: "https://www.amazon.in/s?k=dainty+heart+necklace", note: "Closest thing to wearing my heart" },
-        { name: "Pearl Drop Earrings",   emoji: "🦪", price: "", image: "", link: "https://www.amazon.in/s?k=pearl+drop+earrings", note: "" },
-        { name: "Charm Bracelet",        emoji: "✨", price: "", image: "", link: "https://www.amazon.in/s?k=charm+bracelet+women", note: "We can add a charm for every trip" }
+        { id: "cherry-blossom-jeans", name: "Cherry Blossom Jeans", emoji: "🌸",
+          image: "https://img101.mfrcdn.com/goods-pic/12635769c0334e4aa8af9cd4607711f2_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2326652?ub_cl=in_en-IN&skcPGs=379610-496466&vid=478",
+          note: "Little blossoms walking around with you 🌸" },
+        { id: "sakura-black-jeans", name: "Sakura Black Jeans", emoji: "🖤",
+          image: "https://img101.mfrcdn.com/goods-pic/9f2c1192cdee40ccb1aca2599349699b_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2455622?ub_cl=in_en-IN&skcPGs=397624-503698&vid=478",
+          note: "" },
+        { id: "golden-bloom-jeans", name: "Golden Bloom Jeans", emoji: "✨",
+          image: "https://img101.mfrcdn.com/goods-pic/8309e9260ea64afb956502be9833d83d_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/db/details/2422012?ub_cl=in_en-IN&skcPGs=393229-499192&vid=476",
+          note: "Those gold pockets though ✨" },
+        { id: "black-wide-leg-jeans", name: "Black Wide Leg Jeans", emoji: "👖",
+          image: "https://img101.mfrcdn.com/goods-pic/597a90b7662849c98651a6df4601e1e8_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/db/details/2326092?ub_cl=in_en-IN&skcPGs=379542-485536&vid=478",
+          note: "" },
+        { id: "grey-wrap-jeans", name: "Grey Wrap Jeans", emoji: "🩶",
+          image: "https://img101.mfrcdn.com/goods-pic/5615f5d5b7784e299e2fb050edb39526_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2418382?ub_cl=in_en-IN&vid=320&skcPGs=392670-498478",
+          note: "A little different, a little cool" }
       ]
     },
     {
-      id: "glow",
-      title: "Glow Up Corner",
-      emoji: "💄",
-      intro: "Not that you need it. You already glow. But still 💅",
+      id: "accessories",
+      title: "Accessories",
+      emoji: "💅",
+      intro: "Charms, nails and a sweet perfume. The tiny things that make a day cuter.",
       items: [
-        { name: "Lip & Cheek Tint Set", emoji: "💋", price: "", image: "", link: "https://www.nykaa.com/search/result/?q=lip%20tint", note: "" },
-        { name: "Cute Sheet Mask Box",  emoji: "🧖‍♀️", price: "", image: "", link: "https://www.nykaa.com/search/result/?q=sheet%20mask", note: "Spa date at home? 🛁" },
-        { name: "A Perfume That's You", emoji: "🌸", price: "", image: "", link: "https://www.nykaa.com/search/result/?q=perfume%20women", note: "" }
-      ]
-    },
-    {
-      id: "cuddle",
-      title: "Cuddle Zone",
-      emoji: "🧸",
-      intro: "For when I'm not there to hug you myself.",
-      items: [
-        { name: "Giant Teddy Bear",   emoji: "🧸", price: "", image: "", link: "https://www.amazon.in/s?k=giant+teddy+bear", note: "A stand-in until I get there" },
-        { name: "Fairy Light Curtain", emoji: "💡", price: "", image: "", link: "https://www.amazon.in/s?k=fairy+light+curtain", note: "" },
-        { name: "Heart Cushion",       emoji: "❤️", price: "", image: "", link: "https://www.amazon.in/s?k=heart+cushion", note: "" }
+        { id: "kitty-bag-charm", name: "Kitty Bag Charm", emoji: "🐱",
+          image: "https://img101.mfrcdn.com/goods-pic/1f11027ac65e47ec8cd64fa949ef3ad7_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2345772?ub_cl=in_en-IN&skcPGs=382386-487077&vid=23",
+          note: "Your bag deserves a cute friend too" },
+        { id: "penguin-bag-charm", name: "Penguin Bag Charm", emoji: "🐧",
+          image: "https://img101.mfrcdn.com/goods-pic/681299ef2a5d419dae6cccd65a34177b_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2430332?ub_cl=in_en-IN&skcPGs=394305-502119%2C394306-500713&vid=86",
+          note: "Penguins pick one partner for life. Just saying 🐧" },
+        { id: "heart-bag-charm", name: "Mini Heart Bag Charm", emoji: "💗",
+          image: "https://img101.mfrcdn.com/goods-pic/89521f8b9ef74b07ae453ad588a077db_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2290512?ub_cl=in_en-IN&vid=122&skcPGs=374541-479409%2C374539-479407%2C374540-479408",
+          note: "" },
+        { id: "rhinestone-nails", name: "Sparkly Press-on Nails", emoji: "💅",
+          image: "https://img101.mfrcdn.com/goods-pic/96d80fb99f454101ad88d71023592d04_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2286652?ub_cl=in_en-IN&skcPGs=374030-478985&vid=23",
+          note: "Sparkly nails for my sparkly girl" },
+        { id: "swan-nails", name: "Swan Press-on Nails", emoji: "🦢",
+          image: "https://img101.mfrcdn.com/goods-pic/baaa4ca9acc24a54b172242c67dc0676_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2429222?ub_cl=in_en-IN&skcPGs=394149-500371&vid=554",
+          note: "So elegant, so you 🦢" },
+        { id: "powder-puff-perfume", name: "Powder Puff Perfume", emoji: "🌸",
+          image: "https://img101.mfrcdn.com/goods-pic/c376c3454d2f42dbac2dbaf8960f469d_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/2282872?ub_cl=in_en-IN&vid=122&skcPGs=373527-483207",
+          note: "So I can find you in a crowd 🥹" },
+        { id: "flower-waist-buttons", name: "Flower Waist Buttons", emoji: "🌼",
+          image: "https://img101.mfrcdn.com/goods-pic/5da9bee3ea5b434bb9d6312ffcc97402_w540_h720_q85_lg_fcover",
+          link: "https://sharein.savana.com/da/details/1870812?ub_cl=in_en-IN&skcPGs=307955-407667&vid=326",
+          note: "For jeans that need a tiny hug at the waist" }
       ]
     }
   ],
