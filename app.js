@@ -738,7 +738,7 @@
           <li><span class="r-thumb">${imgTag(it)}</span><span class="r-name">${esc(it.name)}<small>${esc(it.levelTitle)}</small></span>
           <button class="x-btn" data-act="remove" data-key="${esc(it.key)}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : ''}
         ${S.wishes.length ? `<h4>Links you added</h4><ul class="r-list">${S.wishes.map((w, i) => `
-          <li><span class="r-thumb"><span class="emoji-tile">${storeOf(w.url).icon}</span></span><span class="r-name">${esc(storeOf(w.url).name)}<small>${w.at !== undefined ? esc(LEVELS[w.at].title) : 'Wish Well'}${w.note ? ` · 📝 ${esc(w.note)}` : ''}</small></span>
+          <li>${wThumb(w, 'r-thumb')}<span class="r-name">${wName(w)}<small>${w.at !== undefined ? esc(LEVELS[w.at].title) : 'Wish Well'}${w.note ? ` · 📝 ${esc(w.note)}` : ''}</small></span>
           <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : ''}
         <p class="tiny">Remove anything you’re not in love with anymore 💕</p>
       </div>`;
@@ -751,7 +751,7 @@
     [/nykaa/, '💄', 'Nykaa'], [/ajio/, '👠', 'AJIO'], [/meesho/, '🧺', 'Meesho'], [/zara\./, '🖤', 'Zara'],
     [/hm\.com|h&m/, '❤️', 'H&M'], [/purplle/, '💜', 'Purplle'], [/sugarcosmetics/, '💋', 'SUGAR'],
     [/tatacliq/, '✨', 'Tata CLiQ'], [/shein/, '🎀', 'SHEIN'], [/uniqlo/, '🧣', 'Uniqlo'], [/etsy/, '🧶', 'Etsy'],
-    [/instagram|instagr\.am/, '📸', 'Instagram'], [/pinterest|pin\.it/, '📌', 'Pinterest'], [/blinkit|zepto|swiggy|bigbasket/, '🛵', 'Quick delivery'],
+    [/savana/, '🛍️', 'Savana'], [/instagram|instagr\.am/, '📸', 'Instagram'], [/pinterest|pin\.it/, '📌', 'Pinterest'], [/blinkit|zepto|swiggy|bigbasket/, '🛵', 'Quick delivery'],
     [/mamaearth/, '🌿', 'Mamaearth'], [/minimalist|beminimalist/, '🧴', 'Minimalist'], [/lenskart/, '👓', 'Lenskart'],
     [/firstcry/, '🧸', 'FirstCry'], [/fabindia/, '🪡', 'Fabindia'], [/bewakoof/, '👕', 'Bewakoof'], [/croma|reliancedigital/, '🎧', 'Gadgets']
   ];
@@ -769,11 +769,49 @@
     (rest.match(/\b(?:[a-z0-9-]+\.)+(?:com|in|co|net|org|shop|store|me|io|app|ly|gl|it|page)\b(?:\/[^\s<>"']*)?/gi) || []).forEach(u => found.push('https://' + u));
     return [...new Set(found.map(u => u.replace(/[),.;!]+$/, '')))].filter(u => { try { new URL(u); return true; } catch (e) { return false; } });
   }
+  // her pasted links fetch their own product photo + name (microlink.io, free, works from the browser)
+  const previewing = new Set();
+  const BAD_TITLE = /maintenance|access denied|robot|captcha|not found|sign in|log ?in|just a moment|error|blocked/i;
+  const wThumb = (w, cls) => `<span class="${cls}${!w.img && !w.tried ? ' loading' : ''}" data-wurl="${esc(w.url)}">${w.img
+    ? `<img src="${esc(w.img)}" alt="" loading="lazy" data-fallback="${storeOf(w.url).icon}">`
+    : `<span class="emoji-tile">${storeOf(w.url).icon}</span>`}</span>`;
+  const wName = w => `<span data-wtitle="${esc(w.url)}">${esc(w.title || storeOf(w.url).name)}</span>`;
+  function fetchPreview(w) {
+    if (w.tried || w.img || previewing.has(w.url) || !window.fetch) return;
+    previewing.add(w.url);
+    fetch('https://api.microlink.io/?url=' + encodeURIComponent(w.url))
+      .then(r => r.json())
+      .then(j => {
+        const d = (j && j.status === 'success' && j.data) || {};
+        const img = d.image && safeUrl(d.image.url);
+        if (img) {
+          w.img = img;
+          if (d.title && !BAD_TITLE.test(d.title)) w.title = String(d.title).replace(/\s+/g, ' ').trim().slice(0, 80);
+        }
+        w.tried = true; save();
+      })
+      .catch(() => { /* offline or limit reached: the store icon stays, we try again next visit */ })
+      .finally(() => { previewing.delete(w.url); paintPreview(w); });
+  }
+  // swap the photo + name in wherever this link is showing, without re-rendering (keeps typing focus)
+  function paintPreview(w) {
+    $$('[data-wurl]').forEach(el => {
+      if (el.dataset.wurl !== w.url) return;
+      el.classList.remove('loading');
+      if (w.img && !el.querySelector('img')) el.innerHTML = `<img src="${esc(w.img)}" alt="" data-fallback="${storeOf(w.url).icon}">`;
+    });
+    $$('[data-wtitle]').forEach(el => {
+      if (el.dataset.wtitle !== w.url || !w.title) return;
+      el.textContent = w.title;
+      const sub = el.closest('.wish-body') && el.closest('a').querySelector(':scope > span');
+      if (sub) sub.textContent = storeOf(w.url).name;
+    });
+  }
   const withIdx = pred => S.wishes.map((w, i) => ({ w, i })).filter(x => pred(x.w));
   const linksAt = li => S.wishes.filter(w => w.at === li);
   const linkLi = ({ w, i }) => `
-    <li><span class="r-thumb"><span class="emoji-tile">${storeOf(w.url).icon}</span></span>
-      <span class="r-name"><a href="${esc(w.url)}" target="_blank" rel="noopener">${esc(storeOf(w.url).name)}</a>${w.note ? `<small>📝 ${esc(w.note)}</small>` : ''}</span>
+    <li>${wThumb(w, 'r-thumb')}
+      <span class="r-name"><a href="${esc(w.url)}" target="_blank" rel="noopener">${wName(w)}</a>${w.note ? `<small>📝 ${esc(w.note)}</small>` : ''}</span>
       <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove link">✕</button></li>`;
 
   // at = stop index when she pastes a link inside a stop; undefined for the Wish Well
@@ -789,6 +827,7 @@
       const w = { url: u, note: urls.length === 1 ? (note || '') : '' };
       if (inStop) w.at = at;
       S.wishes.push(w); added++;
+      if (added <= 5) setTimeout(() => fetchPreview(w), 0);
     });
     save();
     if (inStop) {
@@ -810,9 +849,9 @@
   const wishLi = ({ w, i }, k) => {
     const st = storeOf(w.url);
     return `<li class="wish-item" style="--in:${(k * 0.05).toFixed(2)}s">
-        <span class="wish-ico">${st.icon}</span>
+        ${wThumb(w, 'wish-ico')}
         <div class="wish-body">
-          <a href="${esc(w.url)}" target="_blank" rel="noopener"><b>${esc(st.name)}</b> <span>${esc(w.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 42))}${w.url.length > 50 ? '…' : ''}</span></a>
+          <a href="${esc(w.url)}" target="_blank" rel="noopener"><b>${wName(w)}</b> <span>${w.title ? esc(st.name) : esc(w.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 42)) + (w.url.length > 50 ? '…' : '')}</span></a>
           <input class="wish-note-edit" data-wishnote="${i}" value="${esc(w.note || '')}" maxlength="140" placeholder="add a note (size, colour…)">
         </div>
         <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove link">✕</button>
@@ -870,7 +909,7 @@
   function buildMessage() {
     const out = [`💝 ${HER}'s Love Box 💝`, ''];
     const picks = S.picks.map(itemByKey).filter(Boolean);
-    const linkLines = (w, n) => { out.push(`${n}. ${w.url}`); if (w.note) out.push(`   📝 ${w.note}`); };
+    const linkLines = (w, n) => { if (w.title) out.push(`${n}. ${w.title}`, `   ${w.url}`); else out.push(`${n}. ${w.url}`); if (w.note) out.push(`   📝 ${w.note}`); };
     LEVELS.forEach((lv, li) => {
       const its = picks.filter(p => p.li === li), links = linksAt(li);
       if (!its.length && !links.length) return;
@@ -1212,5 +1251,6 @@
   /* ----------------------------------------------------------------- go! */
   try { history.replaceState({ lb: S.step }, ''); } catch (e) { /* */ }
   render(0);
+  S.wishes.filter(w => !w.img && !w.tried).slice(0, 5).forEach(fetchPreview);
   if (S.step === 0) showEnvelope();
 })();

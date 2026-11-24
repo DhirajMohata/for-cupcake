@@ -656,3 +656,9 @@ body[data-screen="intro"] .box-btn, body[data-screen="rules"] .box-btn { opacity
 .stop-link-row .btn { flex: none; min-height: 48px; font-size: 17px; }
 .stop-links { margin-top: 4px; }
 .stop-links[hidden] { display: none; }
+
+/* photos fetched for her pasted links */
+.wish-ico { overflow: hidden; }
+.wish-ico img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wish-ico .emoji-tile { font-size: 24px; filter: none; }
+.wish-ico.loading, .r-thumb.loading { animation: beatPlain 1s ease-in-out infinite; }
