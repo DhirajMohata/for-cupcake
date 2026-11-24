@@ -684,3 +684,28 @@ body[data-screen="intro"] .box-btn, body[data-screen="rules"] .box-btn { opacity
 .bt-x:hover { transform: rotate(90deg) scale(1.1); background: var(--pink-200); }
 .bt-img.loading { animation: beatPlain 1s ease-in-out infinite; }
 .drawer-go { width: 100%; margin-top: 10px; }
+
+/* little handwritten love notes */
+.love-note { margin: 0; font-family: var(--font-hand); font-weight: 700; font-size: clamp(26px, 7.5vw, 34px); line-height: 1.1;
+  color: var(--pink-600); transform: rotate(-2deg); text-align: center; }
+.love-tape { width: calc(100% + 32px); margin: 10px -16px 0; overflow: hidden; transform: rotate(-2deg);
+  background: var(--pink-500); border-block: 3px solid var(--ink); padding: 6px 0; }
+.lt-track { display: flex; width: max-content; gap: 14px; align-items: center; animation: tape 26s linear infinite; }
+.lt-track span { font-family: var(--font-hand); font-size: 21px; color: #fff; white-space: nowrap; }
+.lt-track i { font-style: normal; color: var(--pink-100); font-size: 14px; }
+@keyframes tape { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .lt-track { animation: none; } }
+
+/* her pasted links as product cards */
+.float-field.finds { padding-top: 16px; }
+.float-field.finds[hidden] { display: none; }
+.stop-link .float-field.finds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.her-find { background: var(--pink-50); }
+.her-find .find-link { width: 100%; text-decoration: none; }
+.her-find .ph { aspect-ratio: 3 / 4; }
+.her-find .ph.loading { animation: beatPlain 1s ease-in-out infinite; }
+.her-find .name { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.find-chip { font-size: 12px; background: #fff; border: 2px solid var(--ink); border-radius: 99px; padding: 1px 8px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.her-find .wish-note-edit { width: 100%; padding: 6px 8px; font-size: 13px; text-align: center; }
+.her-find .bt-x { top: -10px; right: -8px; z-index: 2; }
+.finds .wish-empty { grid-column: 1 / -1; }

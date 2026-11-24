@@ -53,6 +53,7 @@
     .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .tile small { color: var(--soft); font-weight: 500; overflow-wrap: anywhere; }
     .note { color: var(--p600); }
+    .tile small.her { color: var(--ink); background: var(--p100); border-radius: 99px; padding: 1px 8px; justify-self: start; font-weight: 700; }
     address { font-style: normal; line-height: 1.5; background: var(--p50); border: 2px dashed var(--p500); border-radius: 14px; padding: 10px 12px; }
     address a { color: var(--ink); }
     .foot { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
@@ -163,7 +164,7 @@
       list.innerHTML = boxes.map((b, bi) => {
         const picks = (b.picks || []).map(k => ITEMS.get(k)).filter(Boolean), wishes = b.wishes || [];
         const wishTile = w => tile(safeUrl(w.url), w.img, '🔗', w.title || host(w.url),
-          `<small>${esc(host(w.url))}</small>${w.note ? `<small class="note">📝 ${esc(w.note)}</small>` : ''}`);
+          `<small class="her">🔗 her link · ${esc(host(w.url))}</small>${w.note ? `<small class="note">📝 ${esc(w.note)}</small>` : ''}`);
         const stops = LEVELS.map((lv, li) => {
           const its = picks.filter(p => p.li === li), links = wishes.filter(w => w.at === li);
           if (!its.length && !links.length) return '';
@@ -177,7 +178,7 @@
         return `<article class="card">
           <div class="box-top">
             ${b.sentAt ? `<span class="status sent">✅ Sent ${esc(fmt(b.sentAt))}</span>` : `<span class="status">👀 Still picking · on ${esc(SCREENS[b.screen] || 'the site')}</span>`}
-            <span class="when">${n} ${n === 1 ? 'thing' : 'things'} · updated ${esc(ago(b.at))}</span>
+            <span class="when">${picks.length} picked · ${wishes.length} ${wishes.length === 1 ? 'link' : 'links'} she pasted · updated ${esc(ago(b.at))}</span>
           </div>
           ${stops}
           ${well.length ? `<div class="sec"><h3>🪄 Wish Well</h3><div class="grid">${well.map(wishTile).join('')}</div></div>` : ''}

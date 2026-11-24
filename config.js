@@ -24,7 +24,7 @@ window.LOVE_CONFIG = {
   partyHats: true,                        // birthday party hats on the bear & bunny
   music: true,                            // soft music-box tune (starts on her first tap)
 
-  introLine: "I planned a little adventure just for you. Hold my hand? 🫶",
+  introLine: "I made you a little something. Hold my hand? 🫶",
 
   // GIF links (Giphy/Tenor ".gif" links or files in /gifs). Empty = cartoon couple dances instead.
   gifs: {
@@ -53,21 +53,31 @@ window.LOVE_CONFIG = {
 
   // Shown after each stop. Repeats if you have more stops than lines.
   cheers: [
-    "Look at you go, superstar! 🌟",
-    "Ahh your taste is SO good 😍",
-    "Okay shopping queen, I see you 👑",
-    "You're literally glowing right now ✨",
-    "Best. Shopper. Ever. 💖"
+    "Your taste is so good 😍",
+    "Okay, shopping queen 👑",
+    "You’re so cute when you shop 🙈",
+    "Love that for you ✨"
   ],
 
   // Little lines that pop up when she adds something.
   pickLines: [
-    "Ooh good choice! 😍",
-    "Added with love 💖",
-    "That's SO you 🥹",
-    "Yesss into the box it goes! 🎀",
-    "You have the cutest taste 💕",
-    "Noted, my love 📝💗"
+    "Good choice 😍",
+    "That’s so you 🥹",
+    "In the box 🎀",
+    "Cutest taste ever 💕",
+    "Noted, my love 📝"
+  ],
+
+  // Little handwritten love notes on the map and the love tape.
+  loveNotes: [
+    "you’re my favourite person",
+    "still choosing you, every day",
+    "my happy place is next to you",
+    "you + me = forever",
+    "i’d find you in every lifetime",
+    "home is wherever you are",
+    "forever feels short with you",
+    "my cupcake, my whole heart"
   ],
 
   // The stops on the map. Add / remove / rename freely.
@@ -76,7 +86,7 @@ window.LOVE_CONFIG = {
       id: "tops",
       title: "Cute Tops",
       emoji: "👚",
-      intro: "Soft knits, a little lace and one cosy jacket. Tap anything that makes you smile.",
+      intro: "Soft knits, a bit of lace and a cosy jacket.",
       items: [
         { id: "pink-bow-pullover", name: "Pink Bow Pullover", emoji: "🎀",
           image: "images/pink-bow-pullover.webp",
@@ -104,7 +114,7 @@ window.LOVE_CONFIG = {
       id: "bottoms",
       title: "Comfy Bottoms",
       emoji: "👖",
-      intro: "Wide legs and pretty embroidery. Pick the ones that feel like you.",
+      intro: "Comfy wide legs and pretty embroidery.",
       items: [
         { id: "cherry-blossom-jeans", name: "Cherry Blossom Jeans", emoji: "🌸",
           image: "images/cherry-blossom-jeans.webp",
@@ -132,7 +142,7 @@ window.LOVE_CONFIG = {
       id: "accessories",
       title: "Accessories",
       emoji: "💅",
-      intro: "Charms, nails and a sweet perfume. The tiny things that make a day cuter.",
+      intro: "Little charms, pretty nails and a sweet perfume.",
       items: [
         { id: "kitty-bag-charm", name: "Kitty Bag Charm", emoji: "🐱",
           image: "images/kitty-bag-charm.webp",
@@ -167,5 +177,5 @@ window.LOVE_CONFIG = {
   ],
 
   // Shown on the last screen, like a little letter.
-  finalNote: "Every single thing in this box is just a tiny excuse to see you smile. Thank you for being my favourite person in the whole world. Now let me spoil you a little 💗"
+  finalNote: "Honestly, all of this is just an excuse to see you smile. You’re my favourite person and I’m so lucky I get to love you. Happy birthday, my cupcake. Now let me spoil you a little 💗"
 };

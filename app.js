@@ -8,6 +8,8 @@
   const GIFS = C.gifs || {};
   const CHEERS = (C.cheers && C.cheers.length) ? C.cheers : ['You are amazing! 💖'];
   const PICK_LINES = (C.pickLines && C.pickLines.length) ? C.pickLines : ['Added with love 💖'];
+  const NOTES = (C.loveNotes && C.loveNotes.length) ? C.loveNotes : ['you + me = forever'];
+  const loveTape = () => { const t = NOTES.map(n => `<span>${esc(n)}</span><i>♥</i>`).join(''); return `<div class="love-tape" aria-hidden="true"><div class="lt-track">${t}${t}</div></div>`; };
   const KEY = 'lovebox-v1';
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -331,20 +333,20 @@
         ${C.occasion ? `<p class="kicker pop-in" style="--d:.1s">${esc(C.occasion)}</p>` : ''}
         <h1 class="big-title pop-in" style="--d:.2s">${wavy(HER)}</h1>
         ${GIFS.welcome ? gifOr(GIFS.welcome, 'wave') : `<div class="mascot-stage pop-in" style="--d:.35s">${couple('wave', 'big')}</div>`}
-        <div class="bubble pop-in" style="--d:.55s" data-type="700">${esc(C.introLine || 'I made you a little adventure 💗')}</div>
-        <button class="btn primary big pop-in wiggle" style="--d:.75s" data-act="next">Start our adventure 💗</button>
-        <p class="tiny pop-in" style="--d:.9s">made with way too much love by ${esc(ME)}</p>
+        <div class="bubble pop-in" style="--d:.55s" data-type="700">${esc(C.introLine || 'I made you something. Hold my hand? 🫶')}</div>
+        <button class="btn primary big pop-in wiggle" style="--d:.75s" data-act="next">Let’s go 💗</button>
+        <p class="tiny pop-in" style="--d:.9s">love, ${esc(ME)}</p>
+        ${loveTape()}
       </section>`,
 
     rules: () => `
       <section class="screen rules">
-        <p class="kicker">before we go…</p>
         <h2 class="title">Tiny rules 🎀</h2>
         <ol class="rule-list">
           ${[
-            ['💖', `Pick as many as you love, even <b>all</b> of them! Don’t like something? <b>No pressure</b>, I picked these a little randomly 🙈`],
-            ['🔗', `Saw something cuter somewhere else? <b>Paste its link</b> at any stop.`],
-            ['↩️', `Changed your mind? Go <b>back</b> anytime, or take things out of your love box 💝`]
+            ['💖', `Pick as many as you like, even <b>all</b> of them. Not feeling something? Skip it, <b>no pressure</b>. I kind of chose these randomly 🙈`],
+            ['🔗', `Seen something cuter somewhere? <b>Paste the link</b> at any stop.`],
+            ['↩️', `Change your mind whenever. You can always go <b>back</b> or take things out.`]
           ].map(([e, t], i) => `<li class="rule pop-in" style="--d:${0.1 + i * 0.12}s"><span class="rule-ico">${e}</span><span>${t}</span></li>`).join('')}
         </ol>
         <h2 class="title small pop-in" style="--d:.5s">And my promises 🫶</h2>
@@ -360,14 +362,11 @@
 
     map: step => {
       const n = step.node;
-      const head = n === 0 ? `Off we go, ${esc(HER)}! 💨`
-        : n === WISH_NODE ? 'Almost there… one magic stop left ✨'
-        : n === HOME_NODE ? 'Now let me walk you home 🏡'
-        : 'Onward to the next stop! 🎈';
+      const head = n === HOME_NODE ? 'Now let me walk you home 🏡' : esc(NOTES[n % NOTES.length]);
       const decos = [['🌸', 28, 540], ['🌷', 335, 455], ['🍓', 34, 330], ['🌳', 330, 250], ['🌼', 190, 625], ['🍄', 40, 130], ['🌈', 300, 70], ['🦋', 180, 395], ['🌻', 330, 600], ['☁️', 60, 30]];
       return `
       <section class="screen map">
-        <h2 class="title small">${head}</h2>
+        <h2 class="love-note">${head}</h2>
         <div class="map-card">
           <svg class="map-svg" viewBox="0 0 360 700" role="img" aria-label="Map of our adventure">
             ${decos.map(([e, x, y], i) => `<text class="deco" x="${x}" y="${y}" style="--i:${i}">${e}</text>`).join('')}
@@ -388,14 +387,14 @@
             <g id="walker"><g id="walkerFlip">${couple('walk', '', 'x="-50" y="-92" width="100" height="83" overflow="visible"')}</g></g>
           </svg>
         </div>
-        <div class="bubble map-bubble">Next stop: <b>${NODES[n].emoji} ${esc(NODES[n].title)}</b></div>
-        <button class="btn primary big" data-act="next" id="enterBtn">Enter ✨</button>
+        <div class="bubble map-bubble">Next: <b>${NODES[n].emoji} ${esc(NODES[n].title)}</b></div>
+        <button class="btn primary big" data-act="next" id="enterBtn">Let’s see ✨</button>
       </section>`;
     },
 
     level: step => {
       const lv = LEVELS[step.i];
-      const peekLines = ['Psst… tap anything that’s floating 👀', 'Take your time, my love 💕', 'Only the ones that make you go “aww” 🥹', 'I’m right here holding your hand 🫶'];
+      const peekLines = ['Tap anything to see it closer 👀', 'Take your time, baby 💕', 'Only the ones that make you go aww 🥹', 'I’m right here holding your hand 🫶'];
       return `
       <section class="screen level">
         <div class="level-head">
@@ -404,7 +403,7 @@
           <h2 class="title">${esc(lv.title)}</h2>
           ${lv.intro ? `<p class="sub">${esc(lv.intro)}</p>` : ''}
         </div>
-        <div class="love-rule">💕 Pick all you <b>love</b>, even all of them! Don’t like any? No pressure, I picked these a little randomly 🙈 Paste your own links below.</div>
+        <div class="love-rule">💕 Pick as many as you <b>love</b>. Don’t like any? Skip it, no pressure.</div>
         <div class="float-field">
           ${lv.items.map((it, k) => `
             <button class="float-item ${S.picks.includes(it.key) ? 'picked' : ''}" data-act="peek" data-key="${esc(it.key)}"
@@ -416,14 +415,13 @@
             </button>`).join('')}
         </div>
         <div class="stop-link card">
-          <p class="stop-link-title">Saw something else you love? 🔗</p>
-          <p class="tiny">Paste its link from any app & it goes into your box with ${esc(lv.title)}.</p>
+          <p class="stop-link-title">Seen something better? 🔗</p>
           <div class="stop-link-row">
             <input id="stopText" type="url" inputmode="url" autocomplete="off" placeholder="Paste a link here…">
             <button class="btn primary" data-act="stopAdd" data-i="${step.i}">Add 💕</button>
           </div>
-          <p class="wish-err" id="stopErr" hidden>Hmm, that doesn’t look like a link. Try copying it again 🥺</p>
-          <ul class="wish-list stop-links" id="stopLinks" hidden></ul>
+          <p class="wish-err" id="stopErr" hidden>That’s not a link, baby. Copy it again? 🥺</p>
+          <div class="float-field finds" id="stopLinks" hidden></div>
         </div>
         <div class="peek-row">
           <div class="mini-mascot">${couple('idle')}</div>
@@ -441,9 +439,8 @@
       <section class="screen cheer">
         ${gifOr(cheerGifs.length ? cheerGifs[step.i % cheerGifs.length] : '', 'dance')}
         <h2 class="title pop-in" style="--d:.15s">${esc(CHEERS[step.i % CHEERS.length])}</h2>
-        <p class="sub pop-in" style="--d:.3s">${n ? `You picked ${plural(n, 'thing')} at this stop 😍` : 'Nothing caught your eye here? Totally fine, picky queen 👑'}</p>
-        <div class="stat-pill pop-in" style="--d:.45s">💝 ${plural(total, 'treasure')} in your love box so far</div>
-        <p class="tiny pop-in" style="--d:.55s">${step.i + 1 < LEVELS.length ? `${LEVELS.length - step.i - 1} more ${LEVELS.length - step.i - 1 === 1 ? 'stop' : 'stops'} to explore!` : 'All stops explored! Just the magic part left ✨'}</p>
+        <p class="sub pop-in" style="--d:.3s">${n ? `${plural(n, 'thing')} from here 😍` : 'Nothing here? Totally fine 💕'}</p>
+        <div class="stat-pill pop-in" style="--d:.45s">💝 ${total} in your box</div>
         <div class="nav-row single"><button class="btn primary big" data-act="next">Keep going 💨</button></div>
       </section>`;
     },
@@ -452,19 +449,17 @@
       <section class="screen wish">
         <div class="level-head">
           ${GIFS.wish ? `<div class="level-badge gif-badge"><img src="${esc(GIFS.wish)}" alt="" data-fallback="🪄"></div>` : '<div class="level-badge">🪄</div>'}
-          <p class="kicker">the magic stop</p>
           <h2 class="title">The Wish Well</h2>
-          <p class="sub">Saw something cute <i>anywhere</i>? Amazon, Myntra, Nykaa, Insta, anywhere! Paste the link & toss it in the well ✨</p>
+          <p class="sub">Anything else you’ve been eyeing? Paste the link here ✨</p>
         </div>
-        <div class="love-rule">💕 Only things you love, okay? As many as your heart wants.</div>
         <div class="wish-input card">
-          <textarea id="wishText" rows="3" placeholder="Paste a link here… (you can paste a few at once)"></textarea>
-          <input id="wishNote" type="text" maxlength="140" placeholder="Note? size, colour, anything 📝 (optional)">
+          <textarea id="wishText" rows="3" placeholder="Paste links here…"></textarea>
+          <input id="wishNote" type="text" maxlength="140" placeholder="Size, colour… (optional)">
           <div class="row">
             ${navigator.clipboard && navigator.clipboard.readText ? '<button class="btn soft" data-act="wishPaste">📋 Paste</button>' : ''}
-            <button class="btn primary" data-act="wishAdd">Toss it in ✨</button>
+            <button class="btn primary" data-act="wishAdd">Add ✨</button>
           </div>
-          <p class="wish-err" id="wishErr" hidden>Hmm, that doesn’t look like a link. Try copying it again 🥺</p>
+          <p class="wish-err" id="wishErr" hidden>That’s not a link, baby. Copy it again? 🥺</p>
         </div>
         <div class="well">
           <svg viewBox="0 0 200 90" class="well-svg" aria-hidden="true">
@@ -474,7 +469,7 @@
             <text x="100" y="34" text-anchor="middle" class="well-sparkle">✨</text>
           </svg>
         </div>
-        <ul class="wish-list" id="wishList"></ul>
+        <div class="float-field finds" id="wishList"></div>
         ${navButtons(S.editing ? 'Save & back to my box 💝' : 'Next →', 'wishNext')}
       </section>`,
 
@@ -492,9 +487,7 @@
       <section class="screen address">
         <div class="level-head">
           ${GIFS.home ? `<div class="level-badge gif-badge"><img src="${esc(GIFS.home)}" alt="" data-fallback="🏡"></div>` : '<div class="level-badge">🏡</div>'}
-          <p class="kicker">last stop</p>
-          <h2 class="title">Where do I send the love?</h2>
-          <p class="sub">So all your treasures find their way to you 💌</p>
+          <h2 class="title">Where do I send the love? 💌</h2>
         </div>
         <form class="addr card" id="addrForm" novalidate onsubmit="return false">
           ${f('name', 'Your name', { req: true, ph: HER, attrs: 'autocomplete="name"' })}
@@ -505,9 +498,9 @@
           ${f('city', 'City', { req: true, attrs: 'autocomplete="address-level2"' })}
           ${f('state', 'State', { attrs: 'autocomplete="address-level1"' })}
           ${f('pincode', 'Pincode', { req: true, attrs: 'inputmode="numeric" maxlength="6" autocomplete="postal-code"', err: '6 digits please 🔢' })}
-          ${f('notes', 'Anything else? (best time, gate code…)', { wide: true, area: true })}
+          ${f('notes', 'Anything else?', { wide: true, area: true, ph: 'best time to deliver, gate code…' })}
         </form>
-        <p class="tiny">🔒 This stays on your phone until you send it to ${esc(ME)}.</p>
+        <p class="tiny">🔒 Only ${esc(ME)} can see this.</p>
         ${navButtons(S.editing ? 'Save & back to my box 💝' : 'Walk me home 🏡', 'addrNext')}
       </section>`;
     },
@@ -527,19 +520,19 @@
         <div class="receipt card">
           <div class="receipt-top"><span>💗</span> ${esc(HER)}’s Love Box <span>💗</span></div>
           <div class="r-sec">
-            <div class="r-head"><h3>From our adventure</h3><button class="link-btn" data-act="jump" data-to="level0">edit</button></div>
+            <div class="r-head"><h3>Your picks</h3><button class="link-btn" data-act="jump" data-to="level0">edit</button></div>
             ${byLevel.length ? byLevel.map(g => `
               <p class="r-level">${g.lv.emoji || '🎁'} ${esc(g.lv.title)}</p>
               <ul class="r-list">${g.its.map(it => `
                 <li><span class="r-thumb">${imgTag(it)}</span>
                   <span class="r-name">${safeUrl(it.link) ? `<a href="${esc(safeUrl(it.link))}" target="_blank" rel="noopener">${esc(it.name)}</a>` : esc(it.name)}</span>
                   <button class="x-btn" data-act="remove" data-key="${esc(it.key)}" aria-label="Remove ${esc(it.name)}">✕</button></li>`).join('')}${g.links.map(linkLi).join('')}
-              </ul>`).join('') : '<p class="r-empty">Nothing picked on the way, and that’s okay 💕</p>'}
+              </ul>`).join('') : '<p class="r-empty">Nothing yet, and that’s okay 💕</p>'}
           </div>
           <div class="r-sec">
-            <div class="r-head"><h3>From the Wish Well</h3><button class="link-btn" data-act="jump" data-to="wishlist">edit</button></div>
+            <div class="r-head"><h3>Wish Well</h3><button class="link-btn" data-act="jump" data-to="wishlist">edit</button></div>
             ${well.length ? `<ul class="r-list">${well.map(linkLi).join('')}</ul>`
-              : '<p class="r-empty">No wishes tossed in. You can still go back and add some 🪄</p>'}
+              : '<p class="r-empty">No extra links 🪄</p>'}
           </div>
           <div class="r-sec">
             <div class="r-head"><h3>Deliver to</h3><button class="link-btn" data-act="jump" data-to="address">edit</button></div>
@@ -549,20 +542,21 @@
                 ${a.landmark ? `Near ${esc(a.landmark)}<br>` : ''}
                 ${esc(a.city)}${a.state ? ', ' + esc(a.state) : ''} – ${esc(a.pincode)}
                 ${a.notes ? `<br><small>📝 ${esc(a.notes)}</small>` : ''}
-              </address>` : '<p class="r-empty">No address yet! Tap edit 🏡</p>'}
+              </address>` : '<p class="r-empty">No address yet. Tap edit 🏡</p>'}
           </div>
           <div class="receipt-zig"></div>
         </div>
 
-        ${C.finalNote ? `<div class="letter card"><p>${esc(C.finalNote)}</p><p class="sig">— yours, ${esc(ME)} 💌</p></div>` : ''}
+        ${C.finalNote ? `<div class="letter card"><p>${esc(C.finalNote)}</p><p class="sig">— always yours, ${esc(ME)} 💌</p></div>` : ''}
 
-        <button class="btn ghost kiss-btn" data-act="kiss">Catch a kiss from ${esc(ME)} 😘</button>
+        <button class="btn ghost kiss-btn" data-act="kiss">Catch a kiss 😘</button>
 
         <div class="final-actions">
           <button class="btn primary big wiggle" data-act="send">Send it to ${esc(ME)} 💌</button>
           <button class="btn soft" data-act="copy">📋 Copy everything</button>
         </div>
-        <button class="link-btn restart" data-act="restart">start the adventure over</button>
+        ${loveTape()}
+        <button class="link-btn restart" data-act="restart">start over</button>
       </section>`;
     }
   };
@@ -734,7 +728,7 @@
   }
   function removePick(key) {
     S.picks = S.picks.filter(k => k !== key); save();
-    sfx.boop(); toast('Okay, out it goes! 💨');
+    sfx.boop(); toast('Taken out 💨');
     if (modal.classList.contains('open')) closeModal();
     refreshAfterChange();
   }
@@ -766,7 +760,7 @@
         <div class="modal-img">${imgTag(it)}${picked ? '<span class="pick-badge on">💖</span>' : ''}</div>
         <h3>${esc(it.name)}</h3>
         ${it.note ? `<p class="his-note">“${esc(it.note)}”<span>— ${esc(ME)}</span></p>` : ''}
-        ${link ? `<a class="btn ghost open-link" href="${esc(link)}" target="_blank" rel="noopener">Open &amp; see it 🛍️</a>` : ''}
+        ${link ? `<a class="btn ghost open-link" href="${esc(link)}" target="_blank" rel="noopener">See it in the app 🛍️</a>` : ''}
         <div class="modal-actions">
           ${picked
             ? `<button class="btn soft" data-act="remove" data-key="${esc(key)}">Remove 💔</button>
@@ -774,7 +768,6 @@
             : `<button class="btn soft" data-act="closeModal">Maybe later</button>
                <button class="btn primary" data-act="add" data-key="${esc(key)}" data-focus>I love it! 💖</button>`}
         </div>
-        <p class="tiny">${picked ? 'Already in your love box 💝' : 'only if your heart says yes 💗'}</p>
       </div>`);
   }
 
@@ -793,14 +786,13 @@
       <div class="drawer-card" role="dialog" aria-modal="true" aria-label="Your love box">
         <div class="drawer-head"><h3>💝 Your Love Box</h3><button class="close-x" data-act="closeDrawer" aria-label="Close">✕</button></div>
         ${n === 0
-          ? `<div class="empty">${couple('idle')}<p>Empty for now… go find something you love! 🥺</p></div>`
+          ? `<div class="empty">${couple('idle')}<p>Nothing here yet 🥺</p></div>`
           : `<p class="box-count"><b>${n}</b> ${n === 1 ? 'thing' : 'things'} you love so far</p>
              <ul class="box-grid">
                ${picks.map((it, k) => tile(`<span class="bt-img">${imgTag(it)}</span>`, esc(it.name), esc(it.levelTitle), 'remove', `data-key="${esc(it.key)}"`, k)).join('')}
                ${S.wishes.map((w, i) => tile(wThumb(w, 'bt-img'), wName(w), `🔗 ${w.at !== undefined ? esc(LEVELS[w.at].title) : 'Wish Well'}`, 'wishRemove', `data-i="${i}"`, picks.length + i)).join('')}
              </ul>`}
-        <p class="tiny">Tap ✕ to take something out. You can add more anytime 💕</p>
-        <button class="btn primary drawer-go" data-act="closeDrawer">Keep exploring ✨</button>
+        <button class="btn primary drawer-go" data-act="closeDrawer">Keep going ✨</button>
       </div>`;
     if (silent && drawer.classList.contains('open')) drawer.innerHTML = html; else openOverlay(drawer, html);
   }
@@ -902,33 +894,32 @@
     sfx.chime();
     toast(!added ? 'Already in your box, silly 😄'
       : added > 1 ? `${added} links added! 💕`
-      : inStop ? rand(['Ooh good find! 😍', 'Added with love 💖', 'Into your box it goes 🎀'])
-      : rand(['Wish granted… probably 😉', 'Into the well it goes! 🪄', 'Ooh what is it?? 👀']));
+      : inStop ? rand(['Good find 😍', 'Added 💖', 'Ooh cute 🎀'])
+      : rand(['Ooh what is it? 👀', 'Added ✨', 'Wish granted 😉']));
     refreshAfterChange();
   }
-  const wishLi = ({ w, i }, k) => {
-    const st = storeOf(w.url);
-    return `<li class="wish-item" style="--in:${(k * 0.05).toFixed(2)}s">
-        ${wThumb(w, 'wish-ico')}
-        <div class="wish-body">
-          <a href="${esc(w.url)}" target="_blank" rel="noopener"><b>${wName(w)}</b> <span>${w.title ? esc(st.name) : esc(w.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 42)) + (w.url.length > 50 ? '…' : '')}</span></a>
-          <input class="wish-note-edit" data-wishnote="${i}" value="${esc(w.note || '')}" maxlength="140" placeholder="add a note (size, colour…)">
-        </div>
-        <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove link">✕</button>
-      </li>`;
-  };
+  // her pasted links look just like the products: fetched photo, name, store
+  const linkCard = ({ w, i }, k) => `
+    <div class="float-item her-find" style="--d:${(-k * 0.9).toFixed(2)}s; --r:${(k % 2 ? 2.5 : -2.5)}deg; --in:${(k * 0.06).toFixed(2)}s">
+      <span class="tape"></span>
+      <a class="find-link" href="${esc(w.url)}" target="_blank" rel="noopener">${wThumb(w, 'ph')}</a>
+      <span class="name">${wName(w)}</span>
+      <span class="find-chip">🔗 ${esc(storeOf(w.url).name)}</span>
+      <input class="wish-note-edit" data-wishnote="${i}" value="${esc(w.note || '')}" maxlength="140" placeholder="size, colour…">
+      <button class="bt-x" data-act="wishRemove" data-i="${i}" aria-label="Remove link">✕</button>
+    </div>`;
   function renderWishList() {
     const ul = $('#wishList'); if (!ul) return;
     const list = withIdx(w => w.at === undefined);
-    ul.innerHTML = list.length ? list.map(wishLi).join('')
-      : `<li class="wish-empty">Your well is waiting for wishes ✨<br><small>No wishes? Totally okay, just tap next!</small></li>`;
+    ul.innerHTML = list.length ? list.map(linkCard).join('')
+      : `<div class="wish-empty">Nothing here yet. That’s okay too 💕</div>`;
     const nb = $('#nextBtn');
     if (nb && !S.editing) nb.textContent = list.length ? 'Next →' : 'Skip →';
   }
   function renderStopLinks() {
     const ul = $('#stopLinks'), st = STEPS[S.step]; if (!ul || st.type !== 'level') return;
     const list = withIdx(w => w.at === st.i);
-    ul.innerHTML = list.map(wishLi).join('');
+    ul.innerHTML = list.map(linkCard).join('');
     ul.hidden = !list.length;
   }
 
@@ -959,7 +950,7 @@
     if (bad.length) {
       const first = $('#a_' + bad[0]); first && first.focus();
       const form = $('#addrForm'); form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake');
-      sfx.boop(); toast('Just a couple of things missing 🥺');
+      sfx.boop(); toast('A couple of things are missing 🥺');
       return false;
     }
     return true;
@@ -1025,8 +1016,8 @@
       <div class="modal-card sent" role="dialog" aria-modal="true" aria-label="Sent">
         ${GIFS.sent ? gifOr(GIFS.sent, 'dance') : `<div class="mascot-stage">${couple('dance', 'big')}</div>`}
         <h3>${wavy('Yaaay!')}</h3>
-        <p>Your love box is on its way to ${esc(ME)} 💌<br>Now sit back… surprises are coming 😘</p>
-        <p class="tiny">WhatsApp didn’t open? Use “Copy everything” and paste it to him.</p>
+        <p>Got it, baby 💌<br>Now sit back, surprises are on the way 😘</p>
+        <p class="tiny">If WhatsApp didn’t open, tap Copy everything and send it to me.</p>
         <button class="btn primary" data-act="closeModal" data-focus>Aww okay 🥹</button>
       </div>`), 600);
   }
@@ -1077,9 +1068,9 @@
       S.editing = true; sfx.pop(); go(i, -1);
     },
     send: () => send(),
-    copy: async () => { const ok = await copyText(buildMessage()); sfx.chime(); toast(ok ? 'Copied! Paste it to him 💌' : 'Couldn’t copy, try Send instead 🥺'); },
+    copy: async () => { const ok = await copyText(buildMessage()); sfx.chime(); toast(ok ? 'Copied! Send it to me 💌' : 'Couldn’t copy. Try Send? 🥺'); },
     restart: () => {
-      if (!confirm('Start the whole adventure again? Your love box will be emptied.')) return;
+      if (!confirm('Start over? This empties your love box.')) return;
       S = { ...DEFAULT, soundOn: S.soundOn }; save(); go(0, -1);
     }
   };
@@ -1183,7 +1174,7 @@
     env.innerHTML = `
       <div class="env-wrap">
         <p class="kicker">psst… ${esc(HER)}</p>
-        <h2 class="title">You’ve got a love letter 💌</h2>
+        <h2 class="title">A letter for you 💌</h2>
         <div class="env">
           <svg class="env-svg" viewBox="0 -110 300 310" aria-hidden="true">
             <rect class="e-back" x="4" y="40" width="292" height="156" rx="16" fill="#ff8fbf" stroke="#7a2e55" stroke-width="4"/>
@@ -1198,7 +1189,7 @@
           </svg>
           <button class="env-seal" data-act="openEnvelope" aria-label="Open the love letter">💗</button>
         </div>
-        <p class="sub">tap the heart to open it</p>
+        <p class="sub">tap the heart</p>
       </div>`;
     env.hidden = false;
   }
@@ -1243,7 +1234,7 @@
     if (!m) return;
     m.classList.remove('idle'); m.classList.add('dance', 'happy');
     if (b) {
-      typeInto(b, rand(['Yaaay!! 🥳', 'Eeee good pick! 🙈', '*happy bunny noises* 🐰💕', 'Ooh that’s a cute one 😍', 'Another one?? 😍', 'We approve!! 💯']));
+      typeInto(b, rand(['Yaay 🥳', 'Eee good pick 🙈', '*happy bunny noises* 🐰', 'Ooh that’s cute 😍', 'Another one? 😍', 'We approve 💯']));
       b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing');
     }
     clearTimeout(mascotReact.t);
