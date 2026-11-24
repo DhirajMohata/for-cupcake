@@ -43,6 +43,11 @@
   <div id="drawer" class="overlay" aria-hidden="true"></div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="envelope" class="env-overlay" hidden></div>
+  <div id="songDock" class="song-dock" hidden>
+    <div class="sd-vid"><div id="ytPlayer"></div></div>
+    <div class="sd-info"><span class="sd-label">our song 🎶</span><span class="sd-title" id="sdTitle"></span></div>
+    <button class="sd-btn" data-act="songNext" aria-label="Next song">⏭</button>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
   <script src="config.js"></script>

@@ -24,6 +24,16 @@ window.LOVE_CONFIG = {
   partyHats: true,                        // birthday party hats on the bear & bunny
   music: true,                            // soft music-box tune (starts on her first tap)
 
+  // Songs for the little player (YouTube video IDs). Extra IDs are backups in case one gets taken down.
+  // If YouTube can't load at all, the soft built-in tune plays instead.
+  songs: [
+    { title: "Paper Rings (slowed)",      youtube: ["Cc53_zaDkyI", "oba679chnE4", "8HuE37VkieY"] },
+    { title: "Lover (slowed)",            youtube: ["Z6WiuZiHRzM", "r1Vil72zqOM"] },
+    { title: "invisible string (slowed)", youtube: ["MuhI7Msa1jk", "B5Yrio2nE6U"] },
+    { title: "Daylight (slowed)",         youtube: ["uXOtWxTNkzM", "OONv2ggjmUk"] },
+    { title: "You Are In Love (slowed)",  youtube: ["3eHskzw3jvg"] }
+  ],
+
   introLine: "I made you a little something. Hold my hand? 🫶",
 
   // GIF links (Giphy/Tenor ".gif" links or files in /gifs). Empty = cartoon couple dances instead.

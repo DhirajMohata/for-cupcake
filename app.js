@@ -1198,9 +1198,8 @@
     });
     musicTimer = setTimeout(playLoop, CHORDS.length * bar * 1000 - 100);
   }
-  function startMusic() {
-    musicArmed = true;
-    if (!S.musicOn || musicTimer || document.hidden) return;
+  function startTune() {
+    if (musicTimer) return;
     try {
       audio();
       musicGain = ac.createGain(); musicGain.gain.setValueAtTime(0.0001, ac.currentTime); musicGain.gain.linearRampToValueAtTime(0.7, ac.currentTime + 2.5);
@@ -1208,10 +1207,75 @@
       playLoop();
     } catch (e) { /* no audio */ }
   }
-  function stopMusic() {
+  function stopTune() {
     clearTimeout(musicTimer); musicTimer = null;
     if (musicGain) { const g = musicGain; musicGain = null; try { g.gain.setTargetAtTime(0.0001, ac.currentTime, 0.15); setTimeout(() => g.disconnect(), 800); } catch (e) { /* */ } }
   }
+
+  /* ---- our songs: slowed Taylor love songs from YouTube, in a little player at the bottom */
+  const SONGS = (C.songs || []).filter(x => x && x.youtube && x.youtube.length);
+  const TOTAL_IDS = SONGS.reduce((n, x) => n + x.youtube.length, 0);
+  const dock = $('#songDock');
+  let yt = null, ytReady = false, ytDead = !SONGS.length || !dock, ytWant = false, songI = 0, idI = 0, fails = 0, hintT;
+  function showDock() { if (ytDead) return; dock.hidden = false; document.body.classList.add('has-dock'); $('#sdTitle').textContent = SONGS[songI].title; }
+  function giveUpYT() {
+    ytDead = true; dock.hidden = true; document.body.classList.remove('has-dock');
+    if (ytWant) { ytWant = false; startTune(); }
+  }
+  function cue(play) {
+    $('#sdTitle').textContent = SONGS[songI].title;
+    const id = SONGS[songI].youtube[idI];
+    try { play ? yt.loadVideoById(id) : yt.cueVideoById(id); } catch (e) { giveUpYT(); }
+  }
+  function nextSong() { songI = (songI + 1) % SONGS.length; idI = 0; cue(ytWant); }
+  function loadYT() {
+    if (ytDead || document.getElementById('ytApi')) return;
+    window.onYouTubeIframeAPIReady = () => {
+      try {
+        yt = new YT.Player('ytPlayer', {
+          width: 160, height: 90, videoId: SONGS[0].youtube[0],
+          playerVars: { playsinline: 1, controls: 0, rel: 0, modestbranding: 1, disablekb: 1, fs: 0, iv_load_policy: 3 },
+          events: {
+            onReady: () => { ytReady = true; try { yt.setVolume(75); } catch (e) { /* */ } if (ytWant) ytPlay(); },
+            onStateChange: e => {
+              if (e.data === 0) nextSong();                                    // ended → next song
+              if (e.data === 1) { fails = 0; clearTimeout(hintT); dock.classList.remove('hint'); if (!ytWant) yt.pauseVideo(); }
+            },
+            onError: () => {                                                   // removed / blocked video → backup id → next song
+              if (++fails > TOTAL_IDS) return giveUpYT();
+              if (++idI < SONGS[songI].youtube.length) cue(ytWant); else nextSong();
+            }
+          }
+        });
+      } catch (e) { giveUpYT(); }
+    };
+    const sc = document.createElement('script');
+    sc.id = 'ytApi'; sc.src = 'https://www.youtube.com/iframe_api';
+    sc.onerror = giveUpYT;
+    document.head.appendChild(sc);
+  }
+  function ytPlay() {
+    showDock();
+    if (!ytReady) return;
+    try { yt.playVideo(); } catch (e) { return giveUpYT(); }
+    // some phones only let music start from a tap on the video itself
+    clearTimeout(hintT);
+    hintT = setTimeout(() => { try { if (ytWant && yt.getPlayerState() !== 1) dock.classList.add('hint'); } catch (e) { /* */ } }, 3000);
+  }
+  function startMusic() {
+    musicArmed = true;
+    if (!S.musicOn || document.hidden) return;
+    if (!ytDead) { ytWant = true; stopTune(); loadYT(); ytPlay(); return; }
+    startTune();
+  }
+  function stopMusic() {
+    ytWant = false; clearTimeout(hintT); dock && dock.classList.remove('hint');
+    if (ytReady) { try { yt.pauseVideo(); } catch (e) { /* */ } }
+    stopTune();
+  }
+  ACTIONS.songNext = () => { if (ytReady) { ytWant = true; S.musicOn = true; $('#musicBtn').classList.remove('off'); nextSong(); sfx.pop(); } };
+  if (S.musicOn) loadYT();   // get the player ready early so her first tap can start the song
+
   document.addEventListener('pointerdown', () => { if (!musicArmed && !$('#envelope:not([hidden])')) startMusic(); }, { passive: true });
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopMusic(); else if (musicArmed) startMusic(); });
   ACTIONS.music = () => {
