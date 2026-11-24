@@ -44,7 +44,7 @@
       const s = { ...DEFAULT, ...raw };
       s.picks = (s.picks || []).filter(k => itemByKey(k));
       s.wishes = Array.isArray(s.wishes) ? s.wishes : [];
-      s.wishes.forEach(w => { if (!(Number.isInteger(w.at) && w.at >= 0 && w.at < LEVELS.length)) delete w.at; });
+      s.wishes.forEach(w => { if (!(Number.isInteger(w.at) && w.at >= 0 && w.at < LEVELS.length)) delete w.at; delete w.tried; });
       s.address = s.address || {};
       if (!(s.step >= 0 && s.step < STEPS.length)) s.step = 0;
       return s;
@@ -656,6 +656,7 @@
     $('#musicBtn').classList.toggle('off', !S.musicOn);
     AFTER[step.type] && AFTER[step.type](step, scr, dir);
     if (step.type === 'level') renderStopLinks();
+    requestAnimationFrame(() => $$('textarea.wish-note-edit').forEach(growNote));
     $$('[data-type]', scr).forEach(el => typeInto(el, el.textContent, +el.dataset.type || 0));
   }
 
@@ -775,11 +776,11 @@
     const picks = S.picks.map(itemByKey).filter(Boolean);
     const n = picks.length + S.wishes.length;
     if (!silent) sfx.pop();
-    const tile = (img, name, sub, act, attr, k) => `
+    const tile = (img, name, sub, act, attr, k, note = '') => `
       <li class="box-tile" style="--in:${(k * 0.04).toFixed(2)}s">
         ${img}
         <span class="bt-name">${name}</span>
-        <span class="bt-sub">${sub}</span>
+        <span class="bt-sub">${sub}</span>${note ? `<span class="bt-note">📝 ${esc(note)}</span>` : ''}
         <button class="bt-x" data-act="${act}" ${attr} aria-label="Remove">✕</button>
       </li>`;
     const html = `
@@ -790,7 +791,7 @@
           : `<p class="box-count"><b>${n}</b> ${n === 1 ? 'thing' : 'things'} you love so far</p>
              <ul class="box-grid">
                ${picks.map((it, k) => tile(`<span class="bt-img">${imgTag(it)}</span>`, esc(it.name), esc(it.levelTitle), 'remove', `data-key="${esc(it.key)}"`, k)).join('')}
-               ${S.wishes.map((w, i) => tile(wThumb(w, 'bt-img'), wName(w), `🔗 ${w.at !== undefined ? esc(LEVELS[w.at].title) : 'Wish Well'}`, 'wishRemove', `data-i="${i}"`, picks.length + i)).join('')}
+               ${S.wishes.map((w, i) => tile(wThumb(w, 'bt-img'), wName(w), `🔗 ${w.at !== undefined ? esc(LEVELS[w.at].title) : 'Wish Well'}`, 'wishRemove', `data-i="${i}"`, picks.length + i, w.note)).join('')}
              </ul>`}
         <button class="btn primary drawer-go" data-act="closeDrawer">Keep going ✨</button>
       </div>`;
@@ -824,26 +825,42 @@
   // her pasted links fetch their own product photo + name (microlink.io, free, works from the browser)
   const previewing = new Set();
   const BAD_TITLE = /maintenance|access denied|robot|captcha|not found|sign in|log ?in|just a moment|error|blocked/i;
-  const wThumb = (w, cls) => `<span class="${cls}${!w.img && !w.tried ? ' loading' : ''}" data-wurl="${esc(w.url)}">${w.img
+  const wThumb = (w, cls) => `<span class="${cls}${!w.img && previewing.has(w.url) ? ' loading' : ''}" data-wurl="${esc(w.url)}">${w.img
     ? `<img src="${esc(w.img)}" alt="" loading="lazy" data-fallback="${storeOf(w.url).icon}">`
     : `<span class="emoji-tile">${storeOf(w.url).icon}</span>`}</span>`;
   const wName = w => `<span data-wtitle="${esc(w.url)}">${esc(w.title || storeOf(w.url).name)}</span>`;
+  async function viaReader(url) {
+    const r = await fetch('https://r.jina.ai/' + url, { headers: { 'X-Return-Format': 'html', 'X-Target-Selector': 'head, #landingImage, #productTitle' } });
+    if (!r.ok) throw new Error('reader ' + r.status);
+    const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+    const meta = n => (doc.querySelector(`meta[property="${n}"], meta[name="${n}"]`) || {}).content || '';
+    const li = doc.querySelector('#landingImage');            // Amazon's main photo
+    let dyn = '';
+    try { dyn = Object.keys(JSON.parse((li && li.getAttribute('data-a-dynamic-image')) || '{}'))[0] || ''; } catch (e) { /* */ }
+    let img = meta('og:image') || meta('og:image:url') || meta('twitter:image') || meta('twitter:image:src')
+      || (li && (li.getAttribute('data-old-hires') || dyn || li.getAttribute('src'))) || '';
+    try { img = img ? new URL(img, url).href : ''; } catch (e) { img = ''; }
+    const pt = doc.querySelector('#productTitle');
+    return { img: safeUrl(img), title: meta('og:title') || meta('twitter:title') || (pt && pt.textContent) || doc.title || '' };
+  }
+  async function viaMicrolink(url) {
+    const j = await (await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url))).json();
+    const d = (j && j.status === 'success' && j.data) || {};
+    return { img: d.image ? safeUrl(d.image.url) : '', title: d.title || '' };
+  }
   function fetchPreview(w) {
-    if (w.tried || w.img || previewing.has(w.url) || !window.fetch) return;
+    if (w.img || (w.tries || 0) >= 2 || previewing.has(w.url) || !window.fetch || !window.DOMParser) return;
     previewing.add(w.url);
-    fetch('https://api.microlink.io/?url=' + encodeURIComponent(w.url))
-      .then(r => r.json())
-      .then(j => {
-        const d = (j && j.status === 'success' && j.data) || {};
-        const img = d.image && safeUrl(d.image.url);
-        if (img) {
-          w.img = img;
-          if (d.title && !BAD_TITLE.test(d.title)) w.title = String(d.title).replace(/\s+/g, ' ').trim().slice(0, 80);
-        }
-        w.tried = true; save();
+    const withPhoto = p => (p && p.img ? p : Promise.reject(new Error('no photo')));
+    viaReader(w.url).then(withPhoto)
+      .catch(() => viaMicrolink(w.url).then(withPhoto))
+      .then(p => {
+        w.img = p.img;
+        const t = String(p.title || '').replace(/\s+/g, ' ').trim();
+        if (t && !BAD_TITLE.test(t)) w.title = t.slice(0, 80);
       })
-      .catch(() => { /* offline or limit reached: the store icon stays, we try again next visit */ })
-      .finally(() => { previewing.delete(w.url); paintPreview(w); });
+      .catch(() => { w.tries = (w.tries || 0) + 1; })   // blocked site: cute icon card, one more try next visit
+      .finally(() => { previewing.delete(w.url); save(); paintPreview(w); });
   }
   // swap the photo + name in wherever this link is showing, without re-rendering (keeps typing focus)
   function paintPreview(w) {
@@ -863,7 +880,7 @@
   const linksAt = li => S.wishes.filter(w => w.at === li);
   const linkLi = ({ w, i }) => `
     <li>${wThumb(w, 'r-thumb')}
-      <span class="r-name"><a href="${esc(w.url)}" target="_blank" rel="noopener">${wName(w)}</a>${w.note ? `<small>📝 ${esc(w.note)}</small>` : ''}</span>
+      <span class="r-name"><a href="${esc(w.url)}" target="_blank" rel="noopener">${wName(w)}</a>${w.note ? `<small class="r-note">📝 ${esc(w.note)}</small>` : ''}</span>
       <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove link">✕</button></li>`;
 
   // at = stop index when she pastes a link inside a stop; undefined for the Wish Well
@@ -879,7 +896,7 @@
       const w = { url: u, note: urls.length === 1 ? (note || '') : '' };
       if (inStop) w.at = at;
       S.wishes.push(w); added++;
-      if (added <= 5) setTimeout(() => fetchPreview(w), 0);
+      if (added <= 8) fetchPreview(w);
     });
     save();
     if (inStop) {
@@ -905,7 +922,7 @@
       <a class="find-link" href="${esc(w.url)}" target="_blank" rel="noopener">${wThumb(w, 'ph')}</a>
       <span class="name">${wName(w)}</span>
       <span class="find-chip">🔗 ${esc(storeOf(w.url).name)}</span>
-      <input class="wish-note-edit" data-wishnote="${i}" value="${esc(w.note || '')}" maxlength="140" placeholder="size, colour…">
+      <textarea class="wish-note-edit" data-wishnote="${i}" rows="1" maxlength="140" placeholder="📝 size, colour…">${esc(w.note || '')}</textarea>
       <button class="bt-x" data-act="wishRemove" data-i="${i}" aria-label="Remove link">✕</button>
     </div>`;
   function renderWishList() {
@@ -913,6 +930,7 @@
     const list = withIdx(w => w.at === undefined);
     ul.innerHTML = list.length ? list.map(linkCard).join('')
       : `<div class="wish-empty">Nothing here yet. That’s okay too 💕</div>`;
+    $$('textarea.wish-note-edit', ul).forEach(growNote);
     const nb = $('#nextBtn');
     if (nb && !S.editing) nb.textContent = list.length ? 'Next →' : 'Skip →';
   }
@@ -921,6 +939,7 @@
     const list = withIdx(w => w.at === st.i);
     ul.innerHTML = list.map(linkCard).join('');
     ul.hidden = !list.length;
+    $$('textarea.wish-note-edit', ul).forEach(growNote);
   }
 
   /* -------------------------------------------------------------- address */
@@ -1081,9 +1100,10 @@
     if (e.target === modal) closeModal();
     if (e.target === drawer) closeDrawer();
   });
+  const growNote = el => { if (el.tagName === 'TEXTAREA') { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } };
   document.addEventListener('input', e => {
     const i = e.target.dataset && e.target.dataset.wishnote;
-    if (i !== undefined && S.wishes[+i]) { S.wishes[+i].note = e.target.value; save(); }
+    if (i !== undefined && S.wishes[+i]) { S.wishes[+i].note = e.target.value; save(); growNote(e.target); }
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { if (modal.classList.contains('open')) closeModal(); else if (drawer.classList.contains('open')) closeDrawer(); }
@@ -1314,7 +1334,7 @@
 
   /* ----------------------------------------------------------------- go! */
   try { history.replaceState({ lb: S.step }, ''); } catch (e) { /* */ }
+  S.wishes.filter(w => !w.img).slice(0, 8).forEach(fetchPreview);
   render(0);
-  S.wishes.filter(w => !w.img && !w.tried).slice(0, 5).forEach(fetchPreview);
   if (S.step === 0) showEnvelope();
 })();

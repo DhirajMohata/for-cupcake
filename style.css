@@ -709,3 +709,12 @@ body[data-screen="intro"] .box-btn, body[data-screen="rules"] .box-btn { opacity
 .her-find .wish-note-edit { width: 100%; padding: 6px 8px; font-size: 13px; text-align: center; }
 .her-find .bt-x { top: -10px; right: -8px; z-index: 2; }
 .finds .wish-empty { grid-column: 1 / -1; }
+
+/* her link cards stay still (easier to type in), photos fit without cropping */
+.float-item.her-find { animation: popIn .6s var(--bounce) both; animation-delay: var(--in, 0s); transform: none; }
+.her-find .ph { background: #fff; }
+.her-find .ph img { object-fit: contain; }
+.her-find .wish-note-edit { font-size: 16px; line-height: 1.3; padding: 7px 9px; text-align: left; resize: none; overflow: hidden; min-height: 38px; border-width: 2px; }
+.wish-note-edit { font-size: 16px; }
+.r-name small.r-note { white-space: normal; overflow-wrap: anywhere; color: var(--pink-600); }
+.bt-note { font-size: 11.5px; line-height: 1.25; color: var(--pink-600); overflow-wrap: anywhere; }
