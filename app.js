@@ -1147,31 +1147,64 @@
 
 
   /* ------------------------------------------------- extra cuteness ✨ */
-  // little music box (an original lullaby, made with Web Audio, no files)
-  const MELODY = [[76,1],[79,1],[84,1],[83,1],[81,1],[79,1],[76,2],[77,1],[81,1],[86,1],[84,1],[83,1],[79,3],
-    [76,1],[79,1],[84,1],[88,1],[86,1],[84,1],[81,2],[83,1],[86,1],[79,1],[83,1],[84,4]];
-  const BASS = [48, 45, 41, 43, 48, 41, 43, 48];
-  const BEAT = 0.44;
+  // slow romantic ballad (original, made with Web Audio, no files):
+  // warm pad chords + a soft electric-piano melody + a quiet harp ripple underneath
+  const BEAT = 0.8;                                   // ~75 bpm, unhurried
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  // [bass, pad voicing] per bar: Fmaj7  Am7  Dm7  Bbmaj7  Gm7  C7sus  Fmaj7  Fmaj7
+  const CHORDS = [
+    [41, [53, 57, 60, 64]], [45, [57, 60, 64, 67]], [38, [53, 57, 60, 62]], [46, [53, 57, 58, 62]],
+    [43, [53, 55, 58, 62]], [48, [53, 55, 58, 60]], [41, [53, 57, 60, 64]], [41, [53, 57, 60, 64]]
+  ];
+  // melody per bar as [note, beats]
+  const TUNE = [
+    [[76, 3], [72, 1]], [[72, 2], [76, 1], [79, 1]], [[77, 3], [76, 1]], [[74, 2], [72, 1], [69, 1]],
+    [[70, 2], [74, 2]], [[77, 2], [76, 2]], [[81, 2], [79, 1], [76, 1]], [[77, 4]]
+  ];
+  const ARP = [0, 1, 2, 3, 2, 1, 2, 3];               // gentle broken chord in eighths
   let musicTimer = null, musicGain = null, musicArmed = false;
-  function bell(f, t, dur, vol) {
+  function bell(f, t, vol) {                          // soft harp ripple
     const src = ac.createBufferSource(), g = ac.createGain();
-    src.buffer = pluckBuffer(f); g.gain.value = vol * 2.6;
+    src.buffer = pluckBuffer(f); g.gain.value = vol;
     src.connect(g).connect(musicGain); src.start(t);
+  }
+  function pad(f, t, dur, vol) {                      // warm, slow-swelling chord tone
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = 'triangle'; o2.type = 'sine'; o.frequency.value = f; o2.frequency.value = f * 1.004;
+    lp.type = 'lowpass'; lp.frequency.value = 1000;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.9);
+    g.gain.setValueAtTime(vol, t + dur - 0.3); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.8);
+    o.connect(lp); o2.connect(lp); lp.connect(g).connect(musicGain);
+    o.start(t); o2.start(t); o.stop(t + dur + 0.9); o2.stop(t + dur + 0.9);
+  }
+  function keys(f, t, dur, vol) {                     // soft electric-piano note for the melody
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), g2 = ac.createGain();
+    o.type = 'sine'; o.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f * 2; g2.gain.value = 0.18;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.04);
+    g.gain.exponentialRampToValueAtTime(vol * 0.45, t + 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 1.4);
+    o.connect(g); o2.connect(g2).connect(g); g.connect(musicGain);
+    o.start(t); o2.start(t); o.stop(t + dur + 1.5); o2.stop(t + dur + 1.5);
   }
   function playLoop() {
     if (!musicGain) return;
-    const t0 = ac.currentTime + 0.08; let t = t0;
-    MELODY.forEach(([m, b]) => { bell(mtof(m), t, Math.max(0.5, b * BEAT * 1.6), 0.05); t += b * BEAT; });
-    BASS.forEach((m, i) => bell(mtof(m), t0 + i * 4 * BEAT, 4 * BEAT * 1.1, 0.03));
-    musicTimer = setTimeout(playLoop, (t - t0) * 1000 - 80);
+    const t0 = ac.currentTime + 0.1, bar = 4 * BEAT;
+    CHORDS.forEach(([bass, v], i) => {
+      const tb = t0 + i * bar;
+      pad(mtof(bass), tb, bar, 0.05);
+      v.forEach(m => pad(mtof(m), tb, bar, 0.011));
+      ARP.forEach((k, j) => bell(mtof(v[k] + 12), tb + j * BEAT / 2, j === 0 ? 0.03 : 0.018));
+      let tm = tb;
+      TUNE[i].forEach(([m, beats]) => { keys(mtof(m), tm, beats * BEAT, 0.075); tm += beats * BEAT; });
+    });
+    musicTimer = setTimeout(playLoop, CHORDS.length * bar * 1000 - 100);
   }
   function startMusic() {
     musicArmed = true;
     if (!S.musicOn || musicTimer || document.hidden) return;
     try {
       audio();
-      musicGain = ac.createGain(); musicGain.gain.value = 0.6; musicGain.connect(master); musicGain.connect(echoIn);
+      musicGain = ac.createGain(); musicGain.gain.setValueAtTime(0.0001, ac.currentTime); musicGain.gain.linearRampToValueAtTime(0.7, ac.currentTime + 2.5);
+      musicGain.connect(master); musicGain.connect(echoIn);
       playLoop();
     } catch (e) { /* no audio */ }
   }
