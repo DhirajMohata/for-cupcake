@@ -48,7 +48,53 @@
       return s;
     } catch (e) { return { ...DEFAULT }; }
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode: fine */ } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode: fine */ } syncSoon(); }
+
+  /* ------------------------------------------------- private sync to admin */
+  // Her box is encrypted on her phone with the admin public key, then saved to a tiny text store.
+  // Only admin.html + his password can open it. Runs quietly a few seconds after each change.
+  const AD = window.LOVE_ADMIN;
+  const STORE_URL = AD ? 'https://textdb.dev/api/data/' + AD.store : '';
+  const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  let syncT, syncing = false, syncAgain = false;
+  function syncSoon(ms = 2500) {
+    if (!AD || !(window.crypto && crypto.subtle) || !window.fetch) return;
+    clearTimeout(syncT); syncT = setTimeout(syncNow, ms);
+  }
+  async function seal(obj) {
+    const sub = crypto.subtle, EC = { name: 'ECDH', namedCurve: 'P-256' };
+    const pub = await sub.importKey('jwk', AD.pub, EC, false, []);
+    const eph = await sub.generateKey(EC, true, ['deriveKey']);
+    const key = await sub.deriveKey({ name: 'ECDH', public: pub }, eph.privateKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await sub.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+    const epk = await sub.exportKey('jwk', eph.publicKey);
+    return { epk: { kty: epk.kty, crv: epk.crv, x: epk.x, y: epk.y }, iv: b64(iv), ct: b64(ct) };
+  }
+  async function syncNow() {
+    if (syncing) { syncAgain = true; return; }
+    if (!S.picks.length && !S.wishes.length && !S.address.name) return;
+    syncing = true;
+    try {
+      if (!S.id) {
+        S.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* */ }
+      }
+      const entry = await seal({
+        id: S.id, at: Date.now(), sentAt: S.sentAt || null, screen: STEPS[S.step].type,
+        picks: S.picks, wishes: S.wishes, address: S.address, message: buildMessage()
+      });
+      const r = await fetch(STORE_URL, { cache: 'no-store' });
+      if (!r.ok) throw new Error('store read ' + r.status);
+      const t = (await r.text()).trim();
+      const all = t ? JSON.parse(t) : {};          // unreadable store → throw, never overwrite it
+      all.entries = all.entries && typeof all.entries === 'object' ? all.entries : {};
+      all.entries[S.id] = entry;
+      await fetch(STORE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(all) });
+    } catch (e) { /* offline or store down: tries again on the next change */ }
+    syncing = false;
+    if (syncAgain) { syncAgain = false; syncSoon(800); }
+  }
 
   const stage = $('#stage'), modal = $('#modal'), drawer = $('#drawer'), toastEl = $('#toast');
 
@@ -972,6 +1018,7 @@
     const num = String(C.whatsappNumber || '').replace(/\D/g, '');
     const url = `https://wa.me/${/^\d{8,15}$/.test(num) ? num : ''}?text=${encodeURIComponent(buildMessage())}`;
     window.open(url, '_blank', 'noopener');
+    S.sentAt = Date.now(); save(); syncSoon(0);
     emailCopy();
     sfx.tada(); bigCelebration();
     setTimeout(() => openOverlay(modal, `

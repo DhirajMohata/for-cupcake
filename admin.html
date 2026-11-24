@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Love Box Admin 🔐</title>
+  <meta name="theme-color" content="#ffd9e8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Quicksand:wght@500;600;700&family=Sniglet:wght@400;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink: #7a2e55; --soft: #a35d80; --p50: #fff5f9; --p100: #ffe4ef; --p200: #ffc2da; --p500: #ff5fa2; --p600: #ec4189; --ok: #1f9d6b; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100dvh; font-family: Quicksand, system-ui, sans-serif; font-weight: 600; color: var(--ink);
+      background: radial-gradient(rgba(255,255,255,.8) 2px, transparent 2.6px) 0 0 / 22px 22px, linear-gradient(180deg, #ffe9f2, #fff7fb 60%); }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 18px 16px 60px; }
+    h1, h2, h3 { font-family: Sniglet, sans-serif; font-weight: 800; margin: 0; }
+    h1 { font-size: clamp(26px, 7vw, 36px); }
+    .card { background: #fff; border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 5px 0 var(--ink); padding: 16px; }
+    .btn { font: inherit; font-family: Sniglet, sans-serif; font-size: 16px; color: #fff; background: var(--p500); border: 3px solid var(--ink);
+      border-radius: 99px; padding: 10px 18px; box-shadow: 0 4px 0 var(--ink); cursor: pointer; }
+    .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+    .btn.soft { background: #fff; color: var(--ink); }
+    input[type=password], input[type=text] { width: 100%; font: inherit; font-size: 16px; color: var(--ink); padding: 12px 14px;
+      border: 2.5px solid var(--ink); border-radius: 14px; background: var(--p50); }
+    input:focus { outline: none; box-shadow: 0 0 0 4px var(--p200); background: #fff; }
+
+    #lock { max-width: 400px; margin: 12vh auto 0; display: grid; gap: 12px; text-align: center; }
+    #lock .row { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 14px; color: var(--soft); }
+    #lockErr { color: var(--p600); margin: 0; font-size: 14px; }
+
+    header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    .meta { font-size: 13px; color: var(--soft); margin: 0 0 16px; }
+    .actions { display: flex; gap: 8px; }
+    .actions .btn { font-size: 14px; padding: 8px 14px; }
+    #list { display: grid; gap: 18px; }
+    .empty { text-align: center; padding: 30px 16px; color: var(--soft); }
+    .empty b { display: block; font-family: Caveat, cursive; font-size: 28px; color: var(--ink); }
+
+    .status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 99px; font-size: 14px;
+      border: 2.5px solid var(--ink); background: var(--p100); }
+    .status.sent { background: #dff7ec; color: #12633f; border-color: #12633f; }
+    .box-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .when { font-size: 13px; color: var(--soft); }
+    .sec { margin-top: 14px; }
+    .sec h3 { font-size: 17px; margin-bottom: 8px; color: var(--p600); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
+    .tile { display: grid; gap: 4px; text-decoration: none; color: var(--ink); font-size: 13px; line-height: 1.25; }
+    .ph { aspect-ratio: 3 / 4; border-radius: 14px; overflow: hidden; border: 2.5px solid var(--ink); background: var(--p100);
+      display: grid; place-items: center; font-size: 34px; }
+    .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .tile small { color: var(--soft); font-weight: 500; overflow-wrap: anywhere; }
+    .note { color: var(--p600); }
+    address { font-style: normal; line-height: 1.5; background: var(--p50); border: 2px dashed var(--p500); border-radius: 14px; padding: 10px 12px; }
+    address a { color: var(--ink); }
+    .foot { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .foot .btn { font-size: 14px; padding: 8px 14px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(120px); background: var(--ink); color: #fff;
+      padding: 10px 18px; border-radius: 99px; transition: transform .3s; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <form id="lock" class="card">
+      <h1>🔐 Love Box Admin</h1>
+      <p class="meta" style="margin:0">Only you can open what she picked.</p>
+      <input id="pass" type="password" placeholder="Your secret password" autocomplete="current-password" required>
+      <label class="row"><input id="remember" type="checkbox" checked> Remember on this phone</label>
+      <button class="btn" type="submit">Open 💝</button>
+      <p id="lockErr" hidden>That’s not the password 🥺</p>
+    </form>
+
+    <main id="app" hidden>
+      <header>
+        <h1>💝 Her Love Box</h1>
+        <div class="actions">
+          <button class="btn soft" id="refresh">↻ Refresh</button>
+          <button class="btn soft" id="logout">Lock</button>
+        </div>
+      </header>
+      <p class="meta" id="meta">Loading…</p>
+      <div id="list"></div>
+    </main>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script src="config.js"></script>
+  <script src="admin-key.js"></script>
+  <script>
+  (() => {
+    const C = window.LOVE_CONFIG || {}, AD = window.LOVE_ADMIN;
+    const $ = s => document.querySelector(s);
+    const sub = crypto.subtle, EC = { name: 'ECDH', namedCurve: 'P-256' };
+    const enc = t => new TextEncoder().encode(t), unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const safeUrl = u => (/^https?:\/\//i.test(String(u || '').trim()) ? String(u).trim() : '');
+    const STORE_URL = 'https://textdb.dev/api/data/' + AD.store;
+    const PASS_KEY = 'lovebox-admin-pass', CACHE_KEY = 'lovebox-admin-cache';
+    const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                 set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* */ } },
+                 del: k => { try { localStorage.removeItem(k); } catch (e) { /* */ } } };
+
+    // items from config, keyed exactly like the site does
+    const LEVELS = (C.levels || []).map((lv, li) => ({ ...lv,
+      items: (lv.items || []).map((it, ii) => ({ ...it, key: `${lv.id || 'l' + li}::${it.id || it.name || ii}` })) }));
+    const ITEMS = new Map(LEVELS.flatMap((lv, li) => lv.items.map(it => [it.key, { ...it, li }])));
+    const SCREENS = { intro: 'the start', rules: 'the rules', map: 'the map', level: 'a stop', cheer: 'a stop',
+      wishlist: 'the Wish Well', address: 'the address page', final: 'her finished box' };
+    const host = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return 'link'; } };
+    const fmt = t => new Date(t).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+    const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : fmt(t); };
+    let priv = null, timer = null, boxes = [];
+
+    function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
+
+    async function unlock(pass) {
+      const L = AD.lock;
+      const base = await sub.importKey('raw', enc(pass), 'PBKDF2', false, ['deriveKey']);
+      const wrap = await sub.deriveKey({ name: 'PBKDF2', salt: unb64(L.salt), iterations: L.iterations, hash: 'SHA-256' },
+        base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+      const pk = await sub.decrypt({ name: 'AES-GCM', iv: unb64(L.iv) }, wrap, unb64(L.ct));  // throws on wrong password
+      return sub.importKey('pkcs8', pk, EC, false, ['deriveKey']);
+    }
+    async function openEntry(e) {
+      const epk = await sub.importKey('jwk', e.epk, EC, false, []);
+      const key = await sub.deriveKey({ name: 'ECDH', public: epk }, priv, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+      return JSON.parse(new TextDecoder().decode(await sub.decrypt({ name: 'AES-GCM', iv: unb64(e.iv) }, key, unb64(e.ct))));
+    }
+
+    async function load() {
+      let cache = {};
+      try { cache = JSON.parse(ls.get(CACHE_KEY) || '{}') || {}; } catch (e) { cache = {}; }
+      let online = true;
+      try {
+        const r = await fetch(STORE_URL, { cache: 'no-store' });
+        const t = (await r.text()).trim();
+        const all = t ? JSON.parse(t) : {};
+        Object.assign(cache, all.entries || {});   // keep old ones even if the store ever forgets them
+        ls.set(CACHE_KEY, JSON.stringify(cache));
+      } catch (e) { online = false; }
+      const out = [];
+      for (const e of Object.values(cache)) { try { out.push(await openEntry(e)); } catch (err) { /* not ours */ } }
+      boxes = out.sort((a, b) => (b.at || 0) - (a.at || 0));
+      $('#meta').textContent = (online ? 'Checked ' : 'Offline, showing saved copy · ') + fmt(Date.now()) + ' · refreshes by itself';
+      render();
+    }
+
+    const tile = (href, img, fallback, name, small) => `
+      <a class="tile" ${href ? `href="${esc(href)}" target="_blank" rel="noopener"` : ''}>
+        <span class="ph">${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${fallback}'))">` : fallback}</span>
+        <b>${esc(name)}</b>${small || ''}
+      </a>`;
+
+    function render() {
+      const list = $('#list');
+      if (!boxes.length) {
+        list.innerHTML = `<div class="card empty"><b>Nothing yet 🥺</b>As soon as ${esc(C.herName || 'she')} adds something, it shows up here.</div>`;
+        return;
+      }
+      list.innerHTML = boxes.map((b, bi) => {
+        const picks = (b.picks || []).map(k => ITEMS.get(k)).filter(Boolean), wishes = b.wishes || [];
+        const wishTile = w => tile(safeUrl(w.url), w.img, '🔗', w.title || host(w.url),
+          `<small>${esc(host(w.url))}</small>${w.note ? `<small class="note">📝 ${esc(w.note)}</small>` : ''}`);
+        const stops = LEVELS.map((lv, li) => {
+          const its = picks.filter(p => p.li === li), links = wishes.filter(w => w.at === li);
+          if (!its.length && !links.length) return '';
+          return `<div class="sec"><h3>${lv.emoji || '🎁'} ${esc(lv.title)}</h3><div class="grid">
+            ${its.map(it => tile(safeUrl(it.link), it.image, it.emoji || '🎁', it.name, '')).join('')}
+            ${links.map(wishTile).join('')}</div></div>`;
+        }).join('');
+        const well = wishes.filter(w => w.at === undefined || w.at === null);
+        const a = b.address || {};
+        const n = picks.length + wishes.length;
+        return `<article class="card">
+          <div class="box-top">
+            ${b.sentAt ? `<span class="status sent">✅ Sent ${esc(fmt(b.sentAt))}</span>` : `<span class="status">👀 Still picking · on ${esc(SCREENS[b.screen] || 'the site')}</span>`}
+            <span class="when">${n} ${n === 1 ? 'thing' : 'things'} · updated ${esc(ago(b.at))}</span>
+          </div>
+          ${stops}
+          ${well.length ? `<div class="sec"><h3>🪄 Wish Well</h3><div class="grid">${well.map(wishTile).join('')}</div></div>` : ''}
+          ${!n ? '<p class="meta">No items yet.</p>' : ''}
+          <div class="sec"><h3>🏡 Deliver to</h3>
+            ${a.name || a.line1 ? `<address><b>${esc(a.name || '')}</b>${a.phone ? ` · <a href="tel:${esc(a.phone)}">${esc(a.phone)}</a>` : ''}<br>
+              ${esc([a.line1, a.line2].filter(Boolean).join(', '))}<br>
+              ${a.landmark ? `Near ${esc(a.landmark)}<br>` : ''}${esc(a.city || '')}${a.state ? ', ' + esc(a.state) : ''}${a.pincode ? ' – ' + esc(a.pincode) : ''}
+              ${a.notes ? `<br>📝 ${esc(a.notes)}` : ''}</address>` : '<p class="meta" style="margin:0">Not filled in yet.</p>'}
+          </div>
+          <div class="foot"><button class="btn soft" data-copy="${bi}">📋 Copy everything</button></div>
+        </article>`;
+      }).join('');
+    }
+
+    async function start(pass, remember) {
+      priv = await unlock(pass);
+      if (remember) ls.set(PASS_KEY, pass); else ls.del(PASS_KEY);
+      $('#lock').hidden = true; $('#app').hidden = false;
+      await load();
+      clearInterval(timer); timer = setInterval(() => { if (!document.hidden) load(); }, 20000);
+    }
+
+    $('#lock').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('#lockErr').hidden = true;
+      try { await start($('#pass').value, $('#remember').checked); }
+      catch (err) { $('#lockErr').hidden = false; }
+    });
+    $('#refresh').onclick = () => { load(); toast('Refreshed 💗'); };
+    $('#logout').onclick = () => { ls.del(PASS_KEY); location.reload(); };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && priv) load(); });
+    document.addEventListener('click', async e => {
+      const b = e.target.closest('[data-copy]'); if (!b) return;
+      const text = boxes[+b.dataset.copy].message || '';
+      try { await navigator.clipboard.writeText(text); toast('Copied 📋'); }
+      catch (err) { prompt('Copy this:', text); }
+    });
+
+    const saved = ls.get(PASS_KEY);
+    if (saved) start(saved, true).catch(() => ls.del(PASS_KEY));
+  })();
+  </script>
+</body>
+</html>
