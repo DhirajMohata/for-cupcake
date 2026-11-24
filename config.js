@@ -15,7 +15,10 @@ window.LOVE_CONFIG = {
 
   // Your WhatsApp number with country code, digits only (e.g. "919876543210").
   // Leave "" and WhatsApp will ask her who to send it to.
-  whatsappNumber: "",
+  whatsappNumber: "917405503035",
+
+  // Email that gets a copy of her love box when she taps Send ("" = WhatsApp only).
+  email: "",
 
   sound: true,                            // cute pops & chimes (she can mute)
   partyHats: true,                        // birthday party hats on the bear & bunny

@@ -293,17 +293,23 @@
     rules: () => `
       <section class="screen rules">
         <p class="kicker">before we go…</p>
-        <h2 class="title">A few tiny rules 🎀</h2>
+        <h2 class="title">Tiny rules 🎀</h2>
         <ol class="rule-list">
           ${[
-            ['💖', `Only add things you truly <b>LOVE</b>. Not sure? Skip it. No pressure, ever.`],
-            ['👀', `Tap anything floating to peek. Hit <b>“Open & see it”</b> to see it in the shopping app.`],
-            ['🪄', `Didn’t find your thing? At the end there’s a <b>Wish Well</b>. Paste links of <i>anything</i> you want.`],
-            ['↩️', `Changed your mind? Go <b>back</b> anytime, or remove stuff from your love box 💝.`],
-            ['🏡', `Last stop: tell me where to deliver all the love.`]
+            ['💖', `Pick as many as you love, even <b>all</b> of them! Don’t like something? <b>No pressure</b>, I picked these a little randomly 🙈`],
+            ['🔗', `Saw something cuter somewhere else? <b>Paste its link</b> at any stop.`],
+            ['↩️', `Changed your mind? Go <b>back</b> anytime, or take things out of your love box 💝`]
           ].map(([e, t], i) => `<li class="rule pop-in" style="--d:${0.1 + i * 0.12}s"><span class="rule-ico">${e}</span><span>${t}</span></li>`).join('')}
         </ol>
-        <button class="btn primary big pop-in" style="--d:.8s" data-act="next">Pinky promise 🤙 Let’s go!</button>
+        <h2 class="title small pop-in" style="--d:.5s">And my promises 🫶</h2>
+        <ul class="promise-list">
+          ${[
+            ['💗', 'I love you. Today, tomorrow and every day after.'],
+            ['♾️', 'Forever means forever. You’re stuck with me 😌'],
+            ['🤝', 'I’ll hold your hand on this little map and everywhere else.']
+          ].map(([e, t], i) => `<li class="promise pop-in" style="--d:${0.6 + i * 0.12}s"><span>${e}</span>${t}</li>`).join('')}
+        </ul>
+        <button class="btn primary big pop-in" style="--d:1s" data-act="next">Pinky promise 🤙 Let’s go!</button>
       </section>`,
 
     map: step => {
@@ -352,7 +358,7 @@
           <h2 class="title">${esc(lv.title)}</h2>
           ${lv.intro ? `<p class="sub">${esc(lv.intro)}</p>` : ''}
         </div>
-        <div class="love-rule">💕 Only add it if you <b>love</b> it. Not feeling any? Skip it, you can add what you like later!</div>
+        <div class="love-rule">💕 Pick all you <b>love</b>, even all of them! Don’t like any? No pressure, I picked these a little randomly 🙈 Paste your own links below.</div>
         <div class="float-field">
           ${lv.items.map((it, k) => `
             <button class="float-item ${S.picks.includes(it.key) ? 'picked' : ''}" data-act="peek" data-key="${esc(it.key)}"
@@ -730,17 +736,25 @@
     const picks = S.picks.map(itemByKey).filter(Boolean);
     const n = picks.length + S.wishes.length;
     if (!silent) sfx.pop();
+    const tile = (img, name, sub, act, attr, k) => `
+      <li class="box-tile" style="--in:${(k * 0.04).toFixed(2)}s">
+        ${img}
+        <span class="bt-name">${name}</span>
+        <span class="bt-sub">${sub}</span>
+        <button class="bt-x" data-act="${act}" ${attr} aria-label="Remove">✕</button>
+      </li>`;
     const html = `
       <div class="drawer-card" role="dialog" aria-modal="true" aria-label="Your love box">
         <div class="drawer-head"><h3>💝 Your Love Box</h3><button class="close-x" data-act="closeDrawer" aria-label="Close">✕</button></div>
-        ${n === 0 ? `<div class="empty">${couple('idle')}<p>Empty for now… go find something you love! 🥺</p></div>` : ''}
-        ${picks.length ? `<h4>Picked on the way</h4><ul class="r-list">${picks.map(it => `
-          <li><span class="r-thumb">${imgTag(it)}</span><span class="r-name">${esc(it.name)}<small>${esc(it.levelTitle)}</small></span>
-          <button class="x-btn" data-act="remove" data-key="${esc(it.key)}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : ''}
-        ${S.wishes.length ? `<h4>Links you added</h4><ul class="r-list">${S.wishes.map((w, i) => `
-          <li>${wThumb(w, 'r-thumb')}<span class="r-name">${wName(w)}<small>${w.at !== undefined ? esc(LEVELS[w.at].title) : 'Wish Well'}${w.note ? ` · 📝 ${esc(w.note)}` : ''}</small></span>
-          <button class="x-btn" data-act="wishRemove" data-i="${i}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : ''}
-        <p class="tiny">Remove anything you’re not in love with anymore 💕</p>
+        ${n === 0
+          ? `<div class="empty">${couple('idle')}<p>Empty for now… go find something you love! 🥺</p></div>`
+          : `<p class="box-count"><b>${n}</b> ${n === 1 ? 'thing' : 'things'} you love so far</p>
+             <ul class="box-grid">
+               ${picks.map((it, k) => tile(`<span class="bt-img">${imgTag(it)}</span>`, esc(it.name), esc(it.levelTitle), 'remove', `data-key="${esc(it.key)}"`, k)).join('')}
+               ${S.wishes.map((w, i) => tile(wThumb(w, 'bt-img'), wName(w), `🔗 ${w.at !== undefined ? esc(LEVELS[w.at].title) : 'Wish Well'}`, 'wishRemove', `data-i="${i}"`, picks.length + i)).join('')}
+             </ul>`}
+        <p class="tiny">Tap ✕ to take something out. You can add more anytime 💕</p>
+        <button class="btn primary drawer-go" data-act="closeDrawer">Keep exploring ✨</button>
       </div>`;
     if (silent && drawer.classList.contains('open')) drawer.innerHTML = html; else openOverlay(drawer, html);
   }
@@ -958,6 +972,7 @@
     const num = String(C.whatsappNumber || '').replace(/\D/g, '');
     const url = `https://wa.me/${/^\d{8,15}$/.test(num) ? num : ''}?text=${encodeURIComponent(buildMessage())}`;
     window.open(url, '_blank', 'noopener');
+    emailCopy();
     sfx.tada(); bigCelebration();
     setTimeout(() => openOverlay(modal, `
       <div class="modal-card sent" role="dialog" aria-modal="true" aria-label="Sent">
@@ -967,6 +982,17 @@
         <p class="tiny">WhatsApp didn’t open? Use “Copy everything” and paste it to him.</p>
         <button class="btn primary" data-act="closeModal" data-focus>Aww okay 🥹</button>
       </div>`), 600);
+  }
+
+  // a copy of her whole box lands in his inbox too, so nothing gets lost
+  function emailCopy() {
+    const to = String(C.email || '').trim();
+    if (!to || !window.fetch) return;
+    fetch('https://formsubmit.co/ajax/' + encodeURIComponent(to), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ _subject: `💝 ${HER}'s Love Box`, _template: 'box', _captcha: 'false', 'Her love box': buildMessage() })
+    }).catch(() => { /* WhatsApp still has it */ });
   }
 
   /* -------------------------------------------------------------- toast */
