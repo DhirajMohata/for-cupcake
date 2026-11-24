@@ -99,7 +99,7 @@
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const safeUrl = u => (/^https?:\/\//i.test(String(u || '').trim()) ? String(u).trim() : '');
     const STORE_URL = 'https://textdb.dev/api/data/' + AD.store;
-    const PASS_KEY = 'lovebox-admin-pass', CACHE_KEY = 'lovebox-admin-cache';
+    const PASS_KEY = 'lovebox-admin-pass', CACHE_KEY = 'lovebox-admin-cache', RESET_KEY = 'lovebox-admin-reset';
     const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
                  set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* */ } },
                  del: k => { try { localStorage.removeItem(k); } catch (e) { /* */ } } };
@@ -139,11 +139,13 @@
         const r = await fetch(STORE_URL, { cache: 'no-store' });
         const t = (await r.text()).trim();
         const all = t ? JSON.parse(t) : {};
+        // a fresh start wipes test boxes, even ones this phone remembered
+        if (all.resetAt && all.resetAt !== +ls.get(RESET_KEY)) { cache = {}; ls.set(RESET_KEY, String(all.resetAt)); }
         Object.assign(cache, all.entries || {});   // keep old ones even if the store ever forgets them
         ls.set(CACHE_KEY, JSON.stringify(cache));
       } catch (e) { online = false; }
-      const out = [];
-      for (const e of Object.values(cache)) { try { out.push(await openEntry(e)); } catch (err) { /* not ours */ } }
+      const out = [], resetAt = +ls.get(RESET_KEY) || 0;
+      for (const e of Object.values(cache)) { try { const b = await openEntry(e); if ((b.at || 0) > resetAt) out.push(b); } catch (err) { /* not ours */ } }
       boxes = out.sort((a, b) => (b.at || 0) - (a.at || 0));
       $('#meta').textContent = (online ? 'Checked ' : 'Offline, showing saved copy · ') + fmt(Date.now()) + ' · refreshes by itself';
       render();
