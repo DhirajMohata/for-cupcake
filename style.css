@@ -738,3 +738,110 @@ body.has-dock .nav-row { bottom: calc(78px + env(safe-area-inset-bottom)); }
 body.has-dock .screen { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
 body.has-dock #toast { bottom: calc(160px + env(safe-area-inset-bottom)); }
 body.has-dock #gifPop { bottom: calc(214px + env(safe-area-inset-bottom)); }
+
+/* ================= phones: smaller, cleaner, more on screen ================= */
+@media (max-width: 600px) {
+  :root { --outline: 2.5px solid var(--ink); --pop: 0 3px 0 var(--ink); --radius: 18px; }
+  body { font-size: 15px; }
+
+  /* top bar */
+  #topbar { top: max(8px, env(safe-area-inset-top)); padding: 5px 6px; gap: 8px; box-shadow: 0 3px 0 var(--ink); }
+  .icon-btn { width: 32px; height: 32px; font-size: 15px; border-width: 2px; }
+  .box-btn { height: 32px; font-size: 15px; padding: 0 10px 0 6px; box-shadow: 0 2px 0 var(--ink); border-width: 2px; }
+  .box-btn .box-ico { font-size: 16px; }
+
+  /* page + text */
+  .screen { padding: calc(62px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom)); gap: 12px; }
+  .kicker { font-size: 20px; }
+  .big-title { font-size: clamp(38px, 12vw, 56px); -webkit-text-stroke: 2.5px var(--ink); text-shadow: 0 4px 0 var(--ink), 0 8px 18px rgba(255, 95, 162, .3); }
+  .title { font-size: clamp(22px, 6.6vw, 28px); }
+  .title.small { font-size: clamp(20px, 5.8vw, 24px); }
+  .sub { font-size: 14.5px; line-height: 1.4; }
+  .tiny { font-size: 12px; }
+  .bubble { font-size: 14.5px; padding: 10px 14px; border-radius: 18px; }
+  .love-note { font-size: clamp(22px, 6.4vw, 28px); }
+
+  /* buttons */
+  .btn { min-height: 42px; padding: 9px 18px; font-size: 16px; box-shadow: 0 3px 0 var(--ink); }
+  .btn.big { min-height: 48px; padding: 10px 20px; font-size: 17px; }
+  .nav-row { gap: 10px; }
+  .nav-row .btn { font-size: 15.5px; padding: 9px 14px; min-height: 44px; }
+  .x-btn { width: 28px; height: 28px; font-size: 12px; border-width: 2px; }
+
+  /* intro, rules, map */
+  .mascot-stage { width: min(210px, 58vw); }
+  .screen.intro { gap: 12px; }
+  .env { width: min(260px, 72vw); }
+  .rule-list { gap: 8px; }
+  .rule { padding: 9px 12px; gap: 10px; font-size: 14px; border-radius: 16px; box-shadow: 0 3px 0 var(--ink); }
+  .rule-ico { width: 34px; height: 34px; font-size: 18px; border-radius: 11px; border-width: 2px; }
+  .promise-list { padding: 10px 12px; gap: 6px; border-radius: 18px; }
+  .promise { font-size: 18px; gap: 8px; }
+  .promise > span { font-size: 16px; }
+  .map-card { max-width: 340px; padding: 6px; border-radius: 22px; }
+  .map-svg { max-height: 52dvh; }
+  .lt-track span { font-size: 18px; }
+
+  /* stops: three items per row so she sees more at once */
+  .level-badge { width: 52px; height: 52px; font-size: 26px; border-radius: 17px; }
+  .love-rule { font-size: 13px; padding: 7px 12px; border-radius: 14px; }
+  .float-field { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 9px; padding: 10px 0 4px; }
+  .float-item { padding: 6px 6px 9px; gap: 4px; border-radius: 14px; box-shadow: 0 3px 0 var(--ink); border-width: 2px; }
+  .float-item:hover { box-shadow: 0 5px 0 var(--ink); }
+  .float-item .ph { border-radius: 10px; border-width: 2px; }
+  .float-item .name { font-size: 11.5px; line-height: 1.15; }
+  .tape { width: 40px; height: 13px; top: -8px; }
+  .pick-badge { width: 28px; height: 28px; font-size: 14px; top: -10px; right: -8px; border-width: 2px; box-shadow: 0 2px 0 var(--ink); }
+  .float-item.picked::after { font-size: 13px; padding: 0 7px; bottom: -10px; border-width: 1.5px; }
+  .peek-row { gap: 10px; margin: 2px 0; }
+  .mini-mascot { width: 70px; }
+  .peek-row .bubble { font-size: 13.5px; padding: 8px 12px; }
+
+  /* her own links */
+  .stop-link { padding: 10px; gap: 6px; }
+  .stop-link-title { font-size: 15px; }
+  .stop-link-row .btn, .wish-input .row .btn { min-height: 42px; font-size: 15px; }
+  .wish-input textarea, .wish-input input, .stop-link input, .field input, .field textarea { padding: 9px 12px; border-radius: 12px; border-width: 2px; }
+  .stop-link .float-field.finds, .wish .float-field.finds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .find-chip { font-size: 11px; }
+  .wish-input { padding: 10px; gap: 8px; }
+  .well { width: 120px; }
+
+  /* cheer + gifs */
+  .gif-frame { width: min(220px, 62vw); padding: 7px; border-radius: 20px; }
+  .gif-frame img { border-radius: 14px; }
+  .stat-pill { font-size: 15px; padding: 7px 14px; box-shadow: 0 3px 0 var(--ink); }
+
+  /* address */
+  .addr { padding: 12px; gap: 9px; }
+  .field { font-size: 13px; gap: 3px; }
+
+  /* final box */
+  .r-sec { padding: 10px 14px 2px; }
+  .r-head h3 { font-size: 16px; }
+  .r-name { font-size: 14px; }
+  .r-thumb { width: 40px; height: 40px; border-width: 2px; border-radius: 10px; }
+  .letter { padding: 16px 18px; font-size: 21px; line-height: 28px; background: linear-gradient(transparent 27px, #ffd4e5 28px) 0 6px / 100% 28px, #fffdf8; }
+
+  /* popups */
+  .modal-card { padding: 14px 14px 12px; gap: 8px; border-radius: 22px; box-shadow: 0 5px 0 var(--ink); width: min(340px, 100%); }
+  .modal-card h3 { font-size: 21px; }
+  .modal-img:has(img) { height: min(36dvh, 320px); }
+  .his-note { font-size: 20px; padding: 6px 12px; }
+  .his-note span { font-size: 16px; }
+  .modal-card.sent h3 { font-size: 32px; }
+  .drawer-card { padding: 14px 14px calc(18px + env(safe-area-inset-bottom)); }
+  .drawer-head h3 { font-size: 20px; }
+  .box-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 8px; }
+  .bt-name { font-size: 11px; }
+  .bt-sub { font-size: 10px; }
+
+  /* song player */
+  .song-dock { width: min(300px, calc(100% - 24px)); padding: 4px 6px 4px 4px; gap: 8px; border-radius: 14px; box-shadow: 0 3px 0 var(--ink); border-width: 2.5px; }
+  .sd-vid { width: 64px; height: 36px; border-radius: 9px; }
+  .sd-label { font-size: 15px; }
+  .sd-title { font-size: 12px; }
+  .sd-btn { width: 30px; height: 30px; font-size: 12px; border-width: 2px; }
+  body.has-dock .nav-row { bottom: calc(60px + env(safe-area-inset-bottom)); }
+  body.has-dock .screen { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
