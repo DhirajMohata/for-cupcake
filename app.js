@@ -36,7 +36,7 @@
   const stepIndex = pred => STEPS.findIndex(pred);
 
   // saved progress
-  const DEFAULT = { step: 0, picks: [], wishes: [], address: {}, soundOn: C.sound !== false, musicOn: C.music !== false, editing: false };
+  const DEFAULT = { round: C.round || 1, step: 0, picks: [], wishes: [], address: {}, soundOn: C.sound !== false, musicOn: C.music !== false, editing: false };
   let S = load();
   function load() {
     try {
@@ -44,6 +44,8 @@
       const s = { ...DEFAULT, ...raw };
       s.picks = (s.picks || []).filter(k => itemByKey(k));
       s.wishes = Array.isArray(s.wishes) ? s.wishes : [];
+      // new round of items: start the adventure fresh, but keep her address and links
+      if ((C.round || 1) !== (raw.round || 1)) { s.step = 0; s.picks = []; s.sentAt = null; s.editing = false; s.round = C.round || 1; }
       s.wishes.forEach(w => { if (!(Number.isInteger(w.at) && w.at >= 0 && w.at < LEVELS.length)) delete w.at; delete w.tried; });
       s.address = s.address || {};
       if (!(s.step >= 0 && s.step < STEPS.length)) s.step = 0;
