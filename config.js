@@ -173,6 +173,42 @@ window.LOVE_CONFIG = {
           link: "https://www.aachho.com/products/rajeshwari-light-pink-embroidered-chanderi-kurta-set",
           note: "Light and elegant, for special days" }
       ]
+    },
+    {
+      id: "accessories",
+      title: "Accessories",
+      emoji: "💅",
+      intro: "Little charms, pretty nails and a sweet perfume.",
+      items: [
+        { id: "kitty-bag-charm", name: "Kitty Bag Charm", emoji: "🐱",
+          image: "images/kitty-bag-charm.webp",
+          link: "https://sharein.savana.com/da/details/2345772?ub_cl=in_en-IN&skcPGs=382386-487077&vid=23",
+          note: "Your bag deserves a cute friend too" },
+        { id: "penguin-bag-charm", name: "Penguin Bag Charm", emoji: "🐧",
+          image: "images/penguin-bag-charm.webp",
+          link: "https://sharein.savana.com/da/details/2430332?ub_cl=in_en-IN&skcPGs=394305-502119%2C394306-500713&vid=86",
+          note: "Penguins pick one partner for life. Just saying 🐧" },
+        { id: "heart-bag-charm", name: "Mini Heart Bag Charm", emoji: "💗",
+          image: "images/heart-bag-charm.webp",
+          link: "https://sharein.savana.com/da/details/2290512?ub_cl=in_en-IN&vid=122&skcPGs=374541-479409%2C374539-479407%2C374540-479408",
+          note: "" },
+        { id: "rhinestone-nails", name: "Sparkly Press-on Nails", emoji: "💅",
+          image: "images/rhinestone-nails.webp",
+          link: "https://sharein.savana.com/da/details/2286652?ub_cl=in_en-IN&skcPGs=374030-478985&vid=23",
+          note: "Sparkly nails for my sparkly girl" },
+        { id: "swan-nails", name: "Swan Press-on Nails", emoji: "🦢",
+          image: "images/swan-nails.webp",
+          link: "https://sharein.savana.com/da/details/2429222?ub_cl=in_en-IN&skcPGs=394149-500371&vid=554",
+          note: "So elegant, so you 🦢" },
+        { id: "powder-puff-perfume", name: "Powder Puff Perfume", emoji: "🌸",
+          image: "images/powder-puff-perfume.webp",
+          link: "https://sharein.savana.com/da/details/2282872?ub_cl=in_en-IN&vid=122&skcPGs=373527-483207",
+          note: "So I can find you in a crowd 🥹" },
+        { id: "flower-waist-buttons", name: "Flower Waist Buttons", emoji: "🌼",
+          image: "images/flower-waist-buttons.webp",
+          link: "https://sharein.savana.com/da/details/1870812?ub_cl=in_en-IN&skcPGs=307955-407667&vid=326",
+          note: "For jeans that need a tiny hug at the waist" }
+      ]
     }
   ],
 
